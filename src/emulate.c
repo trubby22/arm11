@@ -3,12 +3,90 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
+#include <stdbool.h>
 
 #define RAM_SIZE 65536
 #define PC_REGISTER 15
 
+enum code {eq, ne, ge, lt, gt, le, al, wrong_code};
+
 uint8_t* Ram;
 uint32_t Registers[17] = { 0 };
+
+// n, z, c, v use bit masking to determine whether respective bits in CPSR register are 0 or 1 and hence the values of N, Z, C, V flags
+
+bool n(void) {
+	uint32_t cpsr = Registers[16];
+	uint32_t mask = pow(2, 31);
+  return (mask & cpsr) == mask;
+}
+
+bool z(void) {
+	uint32_t cpsr = Registers[16];
+	uint32_t mask = pow(2, 30);
+  return (mask & cpsr) == mask;
+}
+
+bool c(void) {
+	uint32_t cpsr = Registers[16];
+	uint32_t mask = pow(2, 29);
+  return (mask & cpsr) == mask;
+}
+
+bool v(void) {
+	uint32_t cpsr = Registers[16];
+	uint32_t mask = pow(2, 28);
+  return (mask & cpsr) == mask;
+}
+
+// read condition code from instruction
+
+enum code readCondition(uint32_t instruction) {
+	uint32_t cond = (instruction >> 28);
+	switch (cond) {
+		case 0:
+			return eq;
+		case 1:
+			return ne;
+		case 10:
+			return ge;
+		case 11:
+			return lt;
+		case 12:
+			return gt;
+		case 13:
+			return le;
+		case 14:
+			return al;
+		default:
+			return wrong_code;
+	}
+}
+
+// check if the flags in the CPSR register satisfy the Cond from the instruction
+
+bool checkConditions(enum code c) {
+	switch (c) {
+		case eq:
+			return z();
+		case ne:
+			return !z();
+		case ge:
+			return n() == v();
+		case lt:
+			return n() != v();
+		case gt:
+			return !z() && (n() == v());
+		case le:
+			return z() || (n() != v());
+		case al:
+			return true;
+		default:
+			printf("Enter a correct code");
+			return false;
+	}
+}
 
 void dataProcessing() {
 
@@ -19,7 +97,7 @@ void multiply() {
 }
 
 void singleDataTransfer() {
-
+ 
 }
 
 void branch() {
