@@ -13,6 +13,8 @@
 #define CPSR_C 29
 #define CPSR_V 28
 
+enum code {eq, ne, ge, lt, gt, le, al, wrong_code};
+
 uint8_t* Ram;
 uint32_t Registers[17] = { 0 };
 
@@ -77,8 +79,137 @@ void multiply(uint32_t instruction) {
 	printf("multiplied\n");
 }
 
-void singleDataTransfer() {
-	printf("data transferred\n");
+uint32_t lsl(uint32_t identifier, uint32_t value) {
+	uint32_t carry;
+	if (value == 0) {
+		carry = 0;
+	} else {
+		carry = ((identifier << (value - 1)) >> 31);
+	}
+	// set C bit in CPSR identifier
+	Registers[16] |= carry << 29;
+	return identifier << value;
+}
+
+uint32_t lsr(uint32_t identifier, uint32_t value) {
+	uint32_t carry;
+	if (value == 0) {
+		carry = 0;
+	} else {
+		carry = ((identifier >> (value - 1)) & 0b1);
+	}
+	// set C bit in CPSR identifier
+	Registers[16] |= carry << 29;
+	return identifier >> value;
+}
+
+uint32_t asr(uint32_t identifier, uint32_t value) {
+	uint32_t carry, highBit, result;
+	if (value == 0) {
+		carry = 0;
+	} else {
+		carry = ((identifier >> (value - 1)) & 0b1);
+	}
+	// set C bit in CPSR identifier
+	Registers[16] |= carry << 29;
+	highBit = identifier >> 31;
+	result = identifier >> value;
+	if (highBit == 1) {
+		for (int i = 0; i < value; i++) {
+			result |= highBit << (31 - i);
+		}
+	}
+	return result;
+}
+
+uint32_t rorOnce(uint32_t identifier) {
+	uint32_t lowBit = identifier & 0b1;
+	uint32_t result = identifier >> 1;
+	result |= lowBit << 31;
+	Registers[16] |= lowBit << 29;
+	return result;
+}
+
+uint32_t ror(uint32_t identifier, uint32_t value) {
+	for (int i = 0; i < value; i++) {
+		identifier = rorOnce(identifier);
+	}
+	return identifier;
+}
+
+uint32_t shift(uint32_t offset) {
+	assert(offset <= 0xfff && "Offset should be 12 bits only");
+	uint32_t shift, rm, shiftType, integer;
+	shift = offset >> 4;
+	rm = offset & 0xf;
+	if ((shift & 0b1) == 0) {
+		shiftType = (shift >> 1) & 0b11;
+		integer = shift >> 3;
+	} else {
+		// optional, maybe TODO later
+	}
+	switch (shiftType) {
+		case 0b00:
+			return lsl(rm, integer);
+		case 0b01:
+			return lsr(rm, integer);
+		case 0b10:
+			return asr(rm, integer);
+		case 0b11:
+			return ror(rm, integer);
+		default:
+			printf("Incorrect shift type");
+			// how to throw an exception here?
+			return 0;
+	}
+}
+
+// method to fix the fact that registers 13 and 14 are absent
+
+uint32_t actualRegister(uint32_t identifier) {
+	if (identifier >= 13) {
+		return identifier + 2;
+	} else {
+		return identifier;
+	}
+}
+
+void singleDataTransfer(uint32_t instruction) {
+	uint32_t immediateOffset, pIndexing, up, ipu, load, baseRegister, sourceRegister, offset, baseRegisterUp, memoryLocation;
+	if (!checkConditions(readCondition(instruction))) {
+		printf("Conditions not satisfied");
+	} else {
+		immediateOffset = (instruction >> 25) & 0b1;
+		pIndexing = (instruction >> 24) & 0b1;
+		up = (instruction >> 23) & 0b1;
+		load = (instruction >> 20) & 0b1;
+		baseRegister = (instruction >> 16) & 0b1111;
+		sourceRegister = (instruction >> 12) & 0b1111;
+		offset = instruction & 0xfff;
+		if (immediateOffset == 1) {
+			offset = shift(offset);
+		}
+		if (up == 0) {
+			baseRegisterUp = Registers[actualRegister(baseRegister)] - offset;
+		} else {
+			baseRegisterUp = Registers[actualRegister(baseRegister)] + offset;
+		}
+		if (pIndexing == 0) {
+			memoryLocation = Registers[actualRegister(baseRegister)];
+		} else {
+			memoryLocation = baseRegisterUp;
+		}
+		if (load == 0) {
+			// to correct
+			Ram[memoryLocation] = Registers[actualRegister(sourceRegister)];
+		} else {
+			// this too
+			Registers[actualRegister(sourceRegister)] = Ram[memoryLocation];
+		}
+		if (pIndexing == 0) {
+			Registers[actualRegister(baseRegister)] = baseRegisterUp;
+		}
+	}
 }
 
 void branch() {
@@ -154,6 +285,7 @@ int main(int argc, char* argv[]) {
 		execute = decoded;
 		decoded = fetched;
 		fetched = fetch();
+	uint32_t result = 0;
 	}
 
 	print_state();
