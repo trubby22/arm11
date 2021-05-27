@@ -136,32 +136,28 @@ uint32_t ror(uint32_t identifier, uint32_t value) {
 	return identifier;
 }
 
-uint32_t shift(uint32_t offset) {
-	assert(offset <= 0xfff && "Offset should be 12 bits only");
-	uint32_t shift, rm, shiftType, integer;
-	shift = offset >> 4;
-	rm = offset & 0xf;
-	if ((shift & 0b1) == 0) {
-		shiftType = (shift >> 1) & 0b11;
-		integer = shift >> 3;
-	}
-	else {
-		// optional, maybe TODO later
-	}
-	switch (shiftType) {
-	case 0b00:
-		return lsl(rm, integer);
-	case 0b01:
-		return lsr(rm, integer);
-	case 0b10:
-		return asr(rm, integer);
-	case 0b11:
-		return ror(rm, integer);
-	default:
-		printf("Incorrect shift type");
-		// how to throw an exception here?
-		return 0;
-	}
+uint32_t shift(uint32_t offset) { {}
+uint8_t rm = offset & 0b1111;
+bool variable = (offset >> 4) & 0b1;
+uint8_t shiftType = (offset >> 5) & 0b11;
+uint8_t value = (offset >> 7) & 0b11111;
+
+if (variable) {
+	uint8_t rs = (value >> 1) & 0b1111;
+	assert(rs != PC_REGISTER && "shift register cannot be PC_REGISTER");
+	value = Registers[rs] & 0xff;
+}
+
+switch (shiftType) {
+case 0b00:
+	return lsl(rm, value);
+case 0b01:
+	return lsr(rm, value);
+case 0b10:
+	return asr(rm, value);
+default:
+	return ror(rm, value);
+}
 }
 
 void singleDataTransfer(uint32_t instruction) {
@@ -171,7 +167,7 @@ void singleDataTransfer(uint32_t instruction) {
 	bool load = (instruction >> 20) & 0b1;
 	uint8_t baseRegister = (instruction >> 16) & 0b1111;
 	uint8_t sourceRegister = (instruction >> 12) & 0b1111;
-	uint16_t offset = instruction & 0xfff;
+	uint32_t offset = instruction & 0xfff;
 	uint32_t baseRegisterUp;
 
 	if (immediateOffset)
