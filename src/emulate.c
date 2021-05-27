@@ -52,7 +52,6 @@ bool cond(uint8_t code) {
 }
 
 void dataProcessing() {
-	printf("data processed\n");
 }
 
 void multiply(uint32_t instruction) {
@@ -166,7 +165,6 @@ uint32_t shift(uint32_t offset) {
 }
 
 void singleDataTransfer(uint32_t instruction) {
-	printf("SDT\n");
 	bool immediateOffset = (instruction >> 25) & 0b1;
 	bool pIndexing = (instruction >> 24) & 0b1;
 	bool up = (instruction >> 23) & 0b1;
@@ -194,12 +192,10 @@ void singleDataTransfer(uint32_t instruction) {
 
 	if (!pIndexing)
 		Registers[baseRegister] = baseRegisterUp;
-
-	printf("SDT success\n");
 }
 
 void branch() {
-	printf("branched\n");
+
 }
 
 uint32_t fetch() {
@@ -210,7 +206,7 @@ uint32_t fetch() {
 	return fetched;
 }
 
-void print_state() {
+void print_state(uint16_t program_size) {
 	printf("Registers\n");
 	uint16_t i;
 	for (i = 0; i <= 9; i++)
@@ -221,7 +217,7 @@ void print_state() {
 	printf("PC  :\t %d (0x%08x)\n", Registers[PC_REGISTER], Registers[PC_REGISTER]);
 	printf("CPSR:\t %d (0x%08x)\n", Registers[CPSR_REGISTER], Registers[CPSR_REGISTER]);
 	printf("Non-zero memory: \n");
-	for (i = 0; i <= Registers[PC_REGISTER]; i += 4) {
+	for (i = 0; i <= program_size; i += 4) {
 		printf("0x%08x:  0x%08x\n", i, *((uint32_t*)(Ram + i)));
 	}
 }
@@ -236,7 +232,6 @@ int main(int argc, char* argv[]) {
 	assert(Ram != NULL && "Could not claim memory");
 
 	uint16_t program_size = fread(Ram, 1, RAM_SIZE, fptr);
-	printf("Program has %u bytes\n", program_size);
 
 	uint32_t execute = fetch();
 	uint32_t decoded = fetch();
@@ -257,7 +252,7 @@ int main(int argc, char* argv[]) {
 				break;
 
 			case 0b01:
-				//singleDataTransfer(execute);
+				singleDataTransfer(execute);
 				break;
 
 			case 0b10:
@@ -273,7 +268,7 @@ int main(int argc, char* argv[]) {
 		fetched = fetch();
 	}
 
-	print_state();
+	print_state(program_size);
 
 	free(Ram);
 	return EXIT_SUCCESS;
