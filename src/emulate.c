@@ -190,8 +190,9 @@ void singleDataTransfer(uint32_t instruction) {
 		Registers[baseRegister] = baseRegisterUp;
 }
 
-void branch() {
-
+void branch(uint32_t instruction) { 
+	int32_t offset = (instruction & 0xffffff) << 2;
+	Registers[PC_REGISTER] += offset;
 }
 
 uint32_t fetch() {
@@ -219,9 +220,9 @@ void print_state(uint16_t program_size) {
 }
 
 int main(int argc, char* argv[]) {
-	assert(argc == 2 && "Enter one argument");
+	assert(argc == 2 && "Enter one argument"); //forces you to enter an argument
 
-	FILE* fptr = fopen(argv[1], "rb");
+	FILE* fptr = fopen(argv[1], "rb"); // "rb" - read binary 
 	assert(fptr != NULL && "Could not open file");
 
 	Ram = (uint8_t*)calloc(RAM_SIZE, sizeof(uint8_t));
@@ -252,7 +253,7 @@ int main(int argc, char* argv[]) {
 				break;
 
 			case 0b10:
-				branch();
+				branch(execute);
 				break;
 
 			default:
