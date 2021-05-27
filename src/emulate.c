@@ -49,6 +49,7 @@ bool cond(uint8_t code) {
 	case 0b1110:
 		return true;
 	default:
+		//TODO: should be changed to false when not debugging
 		return true;
 	}
 }
@@ -76,10 +77,66 @@ void multiply(uint32_t instruction) {
 		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 1);
 		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0);
 	}
-
-	printf("multiplied\n");
 }
 
+uint32_t lsl(uint32_t identifier, uint32_t value) {
+	uint32_t carry;
+	if (value == 0) {
+		carry = 0;
+	}
+	else {
+		carry = ((identifier << (value - 1)) >> 31);
+	}
+	// set C bit in CPSR identifier
+	Registers[16] |= carry << 29;
+	return identifier << value;
+}
+
+uint32_t lsr(uint32_t identifier, uint32_t value) {
+	uint32_t carry;
+	if (value == 0) {
+		carry = 0;
+	}
+	else {
+		carry = ((identifier >> (value - 1)) & 0b1);
+	}
+	// set C bit in CPSR identifier
+	Registers[16] |= carry << 29;
+	return identifier >> value;
+}
+
+uint32_t asr(uint32_t identifier, uint32_t value) {
+	uint32_t carry, highBit, result;
+	if (value == 0) {
+		carry = 0;
+	}
+	else {
+		carry = ((identifier >> (value - 1)) & 0b1);
+	}
+	// set C bit in CPSR identifier
+	Registers[16] |= carry << 29;
+	highBit = identifier >> 31;
+	result = identifier >> value;
+	if (highBit == 1) {
+		for (uint32_t i = 0; i < value; i++) {
+			result |= highBit << (31 - i);
+		}
+	}
+	return result;
+}
+
+uint32_t rorOnce(uint32_t identifier) {
+	uint32_t lowBit = identifier & 0b1;
+	uint32_t result = identifier >> 1;
+	result |= lowBit << 31;
+	Registers[16] |= lowBit << 29;
+	return result;
+}
+
+<<<<<<< HEAD
+uint32_t ror(uint32_t identifier, uint32_t value) {
+	for (uint32_t i = 0; i < value; i++) {
+=======
 uint32_t lsl(uint32_t identifier, uint32_t value) {
 	uint32_t carry;
 	if (value == 0) {
@@ -133,6 +190,7 @@ uint32_t rorOnce(uint32_t identifier) {
 
 uint32_t ror(uint32_t identifier, uint32_t value) {
 	for (int i = 0; i < value; i++) {
+>>>>>>> edead13e0923226bf43e955cb0ca7812e58286e3
 		identifier = rorOnce(identifier);
 	}
 	return identifier;
@@ -146,6 +204,62 @@ uint32_t shift(uint32_t offset) {
 	if ((shift & 0b1) == 0) {
 		shiftType = (shift >> 1) & 0b11;
 		integer = shift >> 3;
+<<<<<<< HEAD
+	}
+	else {
+		// optional, maybe TODO later
+	}
+	switch (shiftType) {
+	case 0b00:
+		return lsl(rm, integer);
+	case 0b01:
+		return lsr(rm, integer);
+	case 0b10:
+		return asr(rm, integer);
+	case 0b11:
+		return ror(rm, integer);
+	default:
+		printf("Incorrect shift type");
+		// how to throw an exception here?
+		return 0;
+	}
+}
+
+void singleDataTransfer(uint32_t instruction) {
+	//Please clean up your code, current code breaks the debugger 
+	//as seen by an unequal amount of SDT and SDT success despite it
+	//being a continuous execution that should go through all functions
+	printf("SDT");
+	bool immediateOffset = (instruction >> 25) & 0b1;
+	bool pIndexing = (instruction >> 24) & 0b1;
+	bool up = (instruction >> 23) & 0b1;
+	bool load = (instruction >> 20) & 0b1;
+	uint8_t baseRegister = (instruction >> 16) & 0b1111;
+	uint8_t sourceRegister = (instruction >> 12) & 0b1111;
+	uint16_t offset = instruction & 0xfff;
+	uint32_t baseRegisterUp;
+
+	if (immediateOffset)
+		offset = shift(offset);
+
+	if (!up)
+		baseRegisterUp = Registers[baseRegister] - offset;
+	else
+		baseRegisterUp = Registers[baseRegister] + offset;
+
+	if (pIndexing)
+		Registers[baseRegister] = baseRegisterUp;
+
+	if (load)
+		Ram[baseRegister] = Registers[sourceRegister];
+	else
+		Registers[sourceRegister] = Ram[baseRegister];
+
+	if (!pIndexing)
+		Registers[baseRegister] = baseRegisterUp;
+
+	printf("SDT success");
+=======
 	} else {
 		// optional, maybe TODO later
 	}
@@ -211,6 +325,7 @@ void singleDataTransfer(uint32_t instruction) {
 			Registers[actualRegister(baseRegister)] = baseRegisterUp;
 		}
 	}
+>>>>>>> edead13e0923226bf43e955cb0ca7812e58286e3
 }
 
 void branch() {
@@ -233,8 +348,8 @@ void print_state() {
 	for (i = 10; i <= 12; i++)
 		printf("$%d :\t %d (0x%08x)\n", i, Registers[i], Registers[i]);
 
-	printf("PC  :\t %d (0x%08x)\n", Registers[13], Registers[13]);
-	printf("CPSR:\t %d (0x%08x)\n", Registers[14], Registers[14]);
+	printf("PC  :\t %d (0x%08x)\n", Registers[PC_REGISTER], Registers[PC_REGISTER]);
+	printf("CPSR:\t %d (0x%08x)\n", Registers[CPSR_REGISTER], Registers[CPSR_REGISTER]);
 	printf("Non-zero memory: \n");
 	for (i = 0; i <= Registers[PC_REGISTER]; i += 4) {
 		printf("0x%08x:  0x%08x\n", i, *((uint32_t*)(Ram + i)));
@@ -272,7 +387,11 @@ int main(int argc, char* argv[]) {
 				break;
 
 			case 0b01:
+<<<<<<< HEAD
+				singleDataTransfer(execute);
+=======
 				singleDataTransfer(instruction);
+>>>>>>> edead13e0923226bf43e955cb0ca7812e58286e3
 				break;
 
 			case 0b10:
@@ -280,7 +399,7 @@ int main(int argc, char* argv[]) {
 				break;
 
 			default:
-				printf("defaulted\n");
+				break;
 			}
 		}
 		execute = decoded;
