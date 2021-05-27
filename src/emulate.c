@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 #include <stdbool.h>
 
 #define RAM_SIZE 65536
@@ -13,8 +12,6 @@
 #define CPSR_Z 30
 #define CPSR_C 29
 #define CPSR_V 28
-
-enum code {eq, ne, ge, lt, gt, le, al, wrong_code};
 
 uint8_t* Ram;
 uint32_t Registers[17] = { 0 };
@@ -133,64 +130,8 @@ uint32_t rorOnce(uint32_t identifier) {
 	return result;
 }
 
-<<<<<<< HEAD
 uint32_t ror(uint32_t identifier, uint32_t value) {
 	for (uint32_t i = 0; i < value; i++) {
-=======
-uint32_t lsl(uint32_t identifier, uint32_t value) {
-	uint32_t carry;
-	if (value == 0) {
-		carry = 0;
-	} else {
-		carry = ((identifier << (value - 1)) >> 31);
-	}
-	// set C bit in CPSR identifier
-	Registers[16] |= carry << 29;
-	return identifier << value;
-}
-
-uint32_t lsr(uint32_t identifier, uint32_t value) {
-	uint32_t carry;
-	if (value == 0) {
-		carry = 0;
-	} else {
-		carry = ((identifier >> (value - 1)) & 0b1);
-	}
-	// set C bit in CPSR identifier
-	Registers[16] |= carry << 29;
-	return identifier >> value;
-}
-
-uint32_t asr(uint32_t identifier, uint32_t value) {
-	uint32_t carry, highBit, result;
-	if (value == 0) {
-		carry = 0;
-	} else {
-		carry = ((identifier >> (value - 1)) & 0b1);
-	}
-	// set C bit in CPSR identifier
-	Registers[16] |= carry << 29;
-	highBit = identifier >> 31;
-	result = identifier >> value;
-	if (highBit == 1) {
-		for (int i = 0; i < value; i++) {
-			result |= highBit << (31 - i);
-		}
-	}
-	return result;
-}
-
-uint32_t rorOnce(uint32_t identifier) {
-	uint32_t lowBit = identifier & 0b1;
-	uint32_t result = identifier >> 1;
-	result |= lowBit << 31;
-	Registers[16] |= lowBit << 29;
-	return result;
-}
-
-uint32_t ror(uint32_t identifier, uint32_t value) {
-	for (int i = 0; i < value; i++) {
->>>>>>> edead13e0923226bf43e955cb0ca7812e58286e3
 		identifier = rorOnce(identifier);
 	}
 	return identifier;
@@ -204,7 +145,6 @@ uint32_t shift(uint32_t offset) {
 	if ((shift & 0b1) == 0) {
 		shiftType = (shift >> 1) & 0b11;
 		integer = shift >> 3;
-<<<<<<< HEAD
 	}
 	else {
 		// optional, maybe TODO later
@@ -226,10 +166,7 @@ uint32_t shift(uint32_t offset) {
 }
 
 void singleDataTransfer(uint32_t instruction) {
-	//Please clean up your code, current code breaks the debugger 
-	//as seen by an unequal amount of SDT and SDT success despite it
-	//being a continuous execution that should go through all functions
-	printf("SDT");
+	printf("SDT\n");
 	bool immediateOffset = (instruction >> 25) & 0b1;
 	bool pIndexing = (instruction >> 24) & 0b1;
 	bool up = (instruction >> 23) & 0b1;
@@ -258,74 +195,7 @@ void singleDataTransfer(uint32_t instruction) {
 	if (!pIndexing)
 		Registers[baseRegister] = baseRegisterUp;
 
-	printf("SDT success");
-=======
-	} else {
-		// optional, maybe TODO later
-	}
-	switch (shiftType) {
-		case 0b00:
-			return lsl(rm, integer);
-		case 0b01:
-			return lsr(rm, integer);
-		case 0b10:
-			return asr(rm, integer);
-		case 0b11:
-			return ror(rm, integer);
-		default:
-			printf("Incorrect shift type");
-			// how to throw an exception here?
-			return 0;
-	}
-}
-
-// method to fix the fact that registers 13 and 14 are absent
-
-uint32_t actualRegister(uint32_t identifier) {
-	if (identifier >= 13) {
-		return identifier + 2;
-	} else {
-		return identifier;
-	}
-}
-
-void singleDataTransfer(uint32_t instruction) {
-	uint32_t immediateOffset, pIndexing, up, ipu, load, baseRegister, sourceRegister, offset, baseRegisterUp, memoryLocation;
-	if (!cond(instruction >> 28)) {
-		printf("Conditions not satisfied");
-	} else {
-		immediateOffset = (instruction >> 25) & 0b1;
-		pIndexing = (instruction >> 24) & 0b1;
-		up = (instruction >> 23) & 0b1;
-		load = (instruction >> 20) & 0b1;
-		baseRegister = (instruction >> 16) & 0b1111;
-		sourceRegister = (instruction >> 12) & 0b1111;
-		offset = instruction & 0xfff;
-		if (immediateOffset == 1) {
-			offset = shift(offset);
-		}
-		if (up == 0) {
-			baseRegisterUp = Registers[actualRegister(baseRegister)] - offset;
-		} else {
-			baseRegisterUp = Registers[actualRegister(baseRegister)] + offset;
-		}
-		if (pIndexing == 0) {
-			memoryLocation = Registers[actualRegister(baseRegister)];
-		} else {
-			memoryLocation = baseRegisterUp;
-		}
-		if (load == 0) {
-			// to correct
-			Ram[memoryLocation] = Registers[actualRegister(sourceRegister)];
-		} else {
-			// this too
-			Registers[actualRegister(sourceRegister)] = Ram[memoryLocation];
-		}
-		if (pIndexing == 0) {
-			Registers[actualRegister(baseRegister)] = baseRegisterUp;
-		}
-	}
->>>>>>> edead13e0923226bf43e955cb0ca7812e58286e3
+	printf("SDT success\n");
 }
 
 void branch() {
@@ -387,11 +257,7 @@ int main(int argc, char* argv[]) {
 				break;
 
 			case 0b01:
-<<<<<<< HEAD
-				singleDataTransfer(execute);
-=======
-				singleDataTransfer(instruction);
->>>>>>> edead13e0923226bf43e955cb0ca7812e58286e3
+				//singleDataTransfer(execute);
 				break;
 
 			case 0b10:
@@ -405,7 +271,6 @@ int main(int argc, char* argv[]) {
 		execute = decoded;
 		decoded = fetched;
 		fetched = fetch();
-	uint32_t result = 0;
 	}
 
 	print_state();
