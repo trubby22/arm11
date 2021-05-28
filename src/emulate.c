@@ -62,30 +62,6 @@ bool cond(uint8_t code) {
 	return true;
 }
 
-void dataProcessing() {
-}
-
-void multiply(uint32_t instruction) {
-	bool accumulate = (instruction >> 21) & 1;
-	bool set_condition = (instruction >> 20) & 1;
-	uint8_t register_d = (instruction >> 16) & 0b1111;
-	uint8_t register_n = (instruction >> 12) & 0b1111;
-	uint8_t register_s = (instruction >> 8) & 0b1111;
-	uint8_t register_m = instruction & 0b1111;
-
-	uint32_t result = Registers[register_m] * Registers[register_s];
-
-	if (accumulate)
-		result += Registers[register_n];
-
-	Registers[register_d] = result;
-
-	if (set_condition) {
-		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 1);
-		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0);
-	}
-}
-
 uint32_t lsl(uint32_t identifier, uint32_t value) {
 	uint32_t carry;
 	if (value == 0)
@@ -169,6 +145,122 @@ uint32_t shift(uint32_t offset) {
 
 	return 0;
 }
+
+void dataProcessing(uint32_t instruction) {
+
+	// Only executed if the Cond field is satisfied by the CPSR register
+
+	bool immediate_operand = (instruction >> 25) & 1;
+	uint8_t opcode = (instruction >> 21) & 0b1111;
+	bool set_condition = (instruction >> 20) & 0b1;
+	uint8_t register_n = (instruction >> 16) & 0b1111;
+	uint8_t register_d = (instruction >> 12) & 0b1111;
+
+	unsigned int operand2 = (instruction >> 11) & 0b111111111111;
+	unsigned int rotate;
+	unsigned int imm;
+	
+
+	unsigned int shiftToDo;
+	uint8_t register_m;
+	uint8_t register_s;
+
+	if (immediate_operand) {
+		// operand2 is an immediate constant
+		rotate = (operand2 >> 8) & 0b1111;
+		imm = operand2 & 0b1111111;
+		imm = imm & 0b00000000000000000000000011111111;
+		imm = (unsigned int) ror((uint32_t) imm, (uint32_t) rotate);
+		operand2 = imm;
+	}
+	else {
+		//operand2 is a shifted register
+		shiftToDo = (operand2 >> 4) & 0b11111111;
+		register_m = (operand2 >> 0) & 0b1111;
+
+		if ((shiftToDo >> 0) & 0b1) { // Shift specified by a register
+			operand2 = shift((uint32_t) operand2);
+
+		}
+		else { // Shift by a constant amount
+			operand2 = shift((uint32_t) operand2);			
+		
+		}
+	}
+
+	switch (opcode) {
+		case 0b0000: //and
+			register_d = (uint8_t) (register_n & operand2);
+			break;
+		case 0b0001: //eor
+			register_d = (uint8_t) (register_n ^ operand2); 
+			break;
+		case 0b0010: //sub
+			register_d = (uint8_t) (register_n - operand2);	
+			break;
+		case 0b0011: //rsb
+			register_d = (uint8_t) (operand2 - register_n);		
+			break;
+		case 0b0100: //add
+			register_d = (uint8_t) (operand2 + register_n);
+			break;
+		case 0b1000: //tst
+			// register_n & operand2 (not written)
+			break;
+		case 0b1001: //teq
+			// (uint8_t) (register_n ^ operand2) (not written)
+			break;
+		case 0b1010: //cmp
+			// (uint8_t) (register_n - operand2) (not written)
+			break;
+		case 0b1100: //orr
+			register_d = (uint8_t) (register_n & operand2);
+			break;
+		case 0b1101: //mov
+			register_d = (uint8_t) operand2;
+			break;
+	}
+	
+
+	if (set_condition) {
+		// V bit is unaffected
+
+		// For C bit: if logic operation -> set to carry out from any shift operation (result from barrel shifter)
+		//            if arithmetic      -> set the the carry out from the ALU (1 for addition if there was a carry,
+		//																		0 for subtraction if there was a borrow)   
+
+		// Z = 1 if the result is all 0s
+
+		// N = logical value of 31st bit of result
+
+	}
+
+	//results may be written to the register specified by register_d
+	printf("data processed\n");
+}
+
+void multiply(uint32_t instruction) {
+	bool accumulate = (instruction >> 21) & 1;
+	bool set_condition = (instruction >> 20) & 1;
+	uint8_t register_d = (instruction >> 16) & 0b1111;
+	uint8_t register_n = (instruction >> 12) & 0b1111;
+	uint8_t register_s = (instruction >> 8) & 0b1111;
+	uint8_t register_m = instruction & 0b1111;
+
+	uint32_t result = Registers[register_m] * Registers[register_s];
+
+	if (accumulate)
+		result += Registers[register_n];
+
+	Registers[register_d] = result;
+
+	if (set_condition) {
+		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 1);
+		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0);
+	}
+}
+
+
 
 void singleDataTransfer(uint32_t instruction) {
 	bool immediateOffset = (instruction >> 25) & 1;
@@ -255,7 +347,7 @@ int main(int argc, char* argv[]) {
 				if ((execute >> 4) == 0b1001)
 					multiply(execute);
 				else
-					dataProcessing();
+					dataProcessing(execute);
 				break;
 
 			case 0b01:
