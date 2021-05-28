@@ -144,30 +144,30 @@ uint32_t ror(uint32_t identifier, uint32_t value) {
 	return identifier;
 }
 
-uint32_t shift(uint32_t offset) { {}
-uint8_t rm = offset & 0b1111;
-bool variable = (offset >> 4) & 0b1;
-uint8_t shiftType = (offset >> 5) & 0b11;
-uint8_t value = (offset >> 7) & 0b11111;
+uint32_t shift(uint32_t offset) { 
+	uint8_t rm = offset & 0b1111;
+	bool variable = (offset >> 4) & 0b1;
+	uint8_t shiftType = (offset >> 5) & 0b11;
+	uint8_t value = (offset >> 7) & 0b11111;
 
-if (variable) {
-	uint8_t rs = (value >> 1) & 0b1111;
-	assert(rs != PC_REGISTER && "shift register cannot be PC_REGISTER");
-	value = Registers[rs] & 0xff;
-}
+	if (variable) {
+		uint8_t rs = (value >> 1) & 0b1111;
+		assert(rs != PC_REGISTER && "shift register cannot be PC_REGISTER");
+		value = Registers[rs] & 0xff;
+	}
 
-switch (shiftType) {
-case 0b00:
-	return lsl(rm, value);
-case 0b01:
-	return lsr(rm, value);
-case 0b10:
-	return asr(rm, value);
-case 0b11:
-	return ror(rm, value);
-}
+	switch (shiftType) {
+	case 0b00:
+		return lsl(rm, value);
+	case 0b01:
+		return lsr(rm, value);
+	case 0b10:
+		return asr(rm, value);
+	case 0b11:
+		return ror(rm, value);
+	}
 
-return 0;
+	return 0;
 }
 
 void singleDataTransfer(uint32_t instruction) {
