@@ -16,6 +16,14 @@
 uint8_t* Ram;
 uint32_t Registers[17] = { 0 };
 
+uint32_t read_ram(uint16_t address) {
+	return *(uint32_t*)(Ram + address);
+}
+
+void write_ram(uint16_t address, uint32_t value) {
+	*(uint32_t*)(Ram + address) = value;
+}
+
 void set_bit(uint32_t* number, uint8_t bit, bool set) {
 	if (set) {
 		*number |= (1 << bit);
@@ -45,10 +53,13 @@ bool cond(uint8_t code) {
 		return z | (n != v);
 	case 0b1110:
 		return true;
-	default:
-		//TODO: should be changed to false when not debugging
-		return true;
 	}
+#ifdef __GNUC__
+	#warning should be changed to false when not debugging
+#else
+#pragma	warning ("should be changed to false when not debugging")
+#endif
+	return true;
 }
 
 void dataProcessing() {
@@ -77,11 +88,11 @@ void multiply(uint32_t instruction) {
 
 uint32_t lsl(uint32_t identifier, uint32_t value) {
 	uint32_t carry;
-	if (value == 0) 
+	if (value == 0)
 		carry = 0;
-	else 
+	else
 		carry = ((identifier << (value - 1)) >> 31);
-	
+
 	// set C bit in CPSR identifier
 	Registers[16] |= carry << 29;
 	return identifier << value;
@@ -89,12 +100,11 @@ uint32_t lsl(uint32_t identifier, uint32_t value) {
 
 uint32_t lsr(uint32_t identifier, uint32_t value) {
 	uint32_t carry;
-	if (value == 0) {
+	if (value == 0)
 		carry = 0;
-	}
-	else {
+	else
 		carry = ((identifier >> (value - 1)) & 0b1);
-	}
+
 	// set C bit in CPSR identifier
 	Registers[16] |= carry << 29;
 	return identifier >> value;
@@ -102,12 +112,11 @@ uint32_t lsr(uint32_t identifier, uint32_t value) {
 
 uint32_t asr(uint32_t identifier, uint32_t value) {
 	uint32_t carry, highBit, result;
-	if (value == 0) {
+	if (value == 0)
 		carry = 0;
-	}
-	else {
+	else
 		carry = ((identifier >> (value - 1)) & 0b1);
-	}
+
 	// set C bit in CPSR identifier
 	Registers[16] |= carry << 29;
 	highBit = identifier >> 31;
@@ -154,50 +163,52 @@ case 0b01:
 	return lsr(rm, value);
 case 0b10:
 	return asr(rm, value);
-default:
+case 0b11:
 	return ror(rm, value);
 }
+
+return 0;
 }
 
 void singleDataTransfer(uint32_t instruction) {
-	bool immediateOffset = (instruction >> 25) & 0b1;
-	bool pIndexing = (instruction >> 24) & 0b1;
-	bool up = (instruction >> 23) & 0b1;
-	bool load = (instruction >> 20) & 0b1;
+	bool immediateOffset = (instruction >> 25) & 1;
+	bool pIndexing = (instruction >> 24) & 1;
+	bool up = (instruction >> 23) & 1;
+	bool load = (instruction >> 20) & 1;
 	uint8_t baseRegister = (instruction >> 16) & 0b1111;
 	uint8_t sourceRegister = (instruction >> 12) & 0b1111;
 	uint32_t offset = instruction & 0xfff;
-	uint32_t baseRegisterUp;
 
 	if (immediateOffset)
 		offset = shift(offset);
 
-	if (!up)
-		baseRegisterUp = Registers[baseRegister] - offset;
+	uint32_t offsetBaseRegister = 0;
+	if (up)
+		offsetBaseRegister = Registers[baseRegister] + offset;
 	else
-		baseRegisterUp = Registers[baseRegister] + offset;
+		offsetBaseRegister = Registers[baseRegister] - offset;
 
 	if (pIndexing)
-		Registers[baseRegister] = baseRegisterUp;
+		Registers[baseRegister] = offsetBaseRegister;
 
 	if (load)
-		Ram[baseRegister] = Registers[sourceRegister];
+		Registers[sourceRegister] = read_ram(Registers[baseRegister]);
 	else
-		Registers[sourceRegister] = Ram[baseRegister];
+		write_ram(Registers[baseRegister], Registers[sourceRegister]);
 
 	if (!pIndexing)
-		Registers[baseRegister] = baseRegisterUp;
+		Registers[baseRegister] = offsetBaseRegister;
 }
 
-void branch(uint32_t instruction) { 
-	int32_t offset = (instruction & 0xffffff) << 2;
-	Registers[PC_REGISTER] += offset;
+void branch(uint32_t instruction) {
+	uint32_t offset = (instruction & 0xffffffU) << 2;
+	Registers[PC_REGISTER] += *((int32_t*)&offset);
 }
 
 uint32_t fetch() {
 	if (Registers[PC_REGISTER] >= RAM_SIZE) return 0;
 
-	uint32_t fetched = *((uint32_t*)(Ram + Registers[PC_REGISTER]));
+	uint32_t fetched = read_ram(Registers[PC_REGISTER]);
 	Registers[PC_REGISTER] += 4;
 	return fetched;
 }
@@ -214,7 +225,7 @@ void print_state(uint16_t program_size) {
 	printf("CPSR:\t %d (0x%08x)\n", Registers[CPSR_REGISTER], Registers[CPSR_REGISTER]);
 	printf("Non-zero memory: \n");
 	for (i = 0; i <= program_size; i += 4) {
-		printf("0x%08x:  0x%08x\n", i, *((uint32_t*)(Ram + i)));
+		printf("0x%08x:  0x%08x\n", i, read_ram(i));
 	}
 }
 
@@ -227,7 +238,7 @@ int main(int argc, char* argv[]) {
 	Ram = (uint8_t*)calloc(RAM_SIZE, sizeof(uint8_t));
 	assert(Ram != NULL && "Could not claim memory");
 
-	uint16_t program_size = fread(Ram, 1, RAM_SIZE, fptr);
+	uint16_t program_size = (uint16_t)fread(Ram, 1, RAM_SIZE, fptr);
 
 	uint32_t execute = fetch();
 	uint32_t decoded = fetch();
