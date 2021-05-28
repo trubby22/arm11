@@ -77,12 +77,11 @@ void multiply(uint32_t instruction) {
 
 uint32_t lsl(uint32_t identifier, uint32_t value) {
 	uint32_t carry;
-	if (value == 0) {
+	if (value == 0) 
 		carry = 0;
-	}
-	else {
+	else 
 		carry = ((identifier << (value - 1)) >> 31);
-	}
+	
 	// set C bit in CPSR identifier
 	Registers[16] |= carry << 29;
 	return identifier << value;
@@ -254,6 +253,8 @@ int main(int argc, char* argv[]) {
 
 			case 0b10:
 				branch(execute);
+				decoded = 0;
+				fetched = 0;
 				break;
 
 			default:
