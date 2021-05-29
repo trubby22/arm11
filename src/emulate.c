@@ -62,94 +62,52 @@ bool cond(uint8_t code) {
 	return true;
 }
 
-uint32_t lsl(uint32_t identifier, uint32_t value) {
-	uint32_t carry;
-	if (value == 0)
-		carry = 0;
-	else
-		carry = ((identifier << (value - 1)) >> 31);
+uint32_t arithmetic_right(uint32_t register_value, uint8_t shift_value) {
+	bool negative = register_value >> 31 && 1;
+	uint32_t result = register_value >> shift_value;
 
-	// set C bit in CPSR identifier
-	Registers[16] |= carry << 29;
-	return identifier << value;
-}
+	if (negative) 
+		for (uint32_t i = 0; i < shift_value; i++) 
+			result |= 1 << (31 - i);
 
-uint32_t lsr(uint32_t identifier, uint32_t value) {
-	uint32_t carry;
-	if (value == 0)
-		carry = 0;
-	else
-		carry = ((identifier >> (value - 1)) & 0b1);
-
-	// set C bit in CPSR identifier
-	Registers[16] |= carry << 29;
-	return identifier >> value;
-}
-
-uint32_t asr(uint32_t identifier, uint32_t value) {
-	uint32_t carry, highBit, result;
-	if (value == 0)
-		carry = 0;
-	else
-		carry = ((identifier >> (value - 1)) & 0b1);
-
-	// set C bit in CPSR identifier
-	Registers[16] |= carry << 29;
-	highBit = identifier >> 31;
-	result = identifier >> value;
-	if (highBit == 1) {
-		for (uint32_t i = 0; i < value; i++) {
-			result |= highBit << (31 - i);
-		}
-	}
 	return result;
 }
 
-uint32_t rorOnce(uint32_t identifier) {
-	uint32_t lowBit = identifier & 0b1;
-	uint32_t result = identifier >> 1;
-	result |= lowBit << 31;
-	Registers[16] |= lowBit << 29;
-	return result;
-}
-
-uint32_t ror(uint32_t identifier, uint32_t value) {
-	for (uint32_t i = 0; i < value; i++) {
-		identifier = rorOnce(identifier);
-	}
-	return identifier;
+uint32_t rotate_right(uint32_t register_value, uint8_t shift_value) {
+	uint32_t shifted_value = register_value >> shift_value;
+	uint32_t rotated_value = register_value << (31 - shift_value);
+	return shifted_value | rotated_value;
 }
 
 uint32_t shift(uint32_t offset) { 
-	uint8_t rm = offset & 0b1111;
+	uint8_t register_m = offset & 0b1111;
 	bool variable = (offset >> 4) & 0b1;
-	uint8_t shiftType = (offset >> 5) & 0b11;
-	uint8_t value = (offset >> 7) & 0b11111;
+	uint8_t shift_type = (offset >> 5) & 0b11;
+	uint8_t shift_value = (offset >> 7) & 0b11111;
+
+	uint32_t register_value = Registers[register_m];
 
 	if (variable) {
-		uint8_t rs = (value >> 1) & 0b1111;
-		assert(rs != PC_REGISTER && "shift register cannot be PC_REGISTER");
-		value = Registers[rs] & 0xff;
+		uint8_t register_s = (shift_value >> 1) & 0b1111;
+		assert(register_s != PC_REGISTER && "shift register cannot be PC_REGISTER");
+		shift_value = Registers[register_s] & 0xff;
 	}
 
-	switch (shiftType) {
+	switch (shift_type) {
 	case 0b00:
-		return lsl(rm, value);
+		return register_value << shift_value;
 	case 0b01:
-		return lsr(rm, value);
+		return register_value >> shift_value;
 	case 0b10:
-		return asr(rm, value);
+		return arithmetic_right(register_value, shift_value);
 	case 0b11:
-		return ror(rm, value);
+		return rotate_right(register_value, shift_value);
 	}
 
 	return 0;
 }
 
 void dataProcessing(uint32_t instruction) {
-
-	// Only executed if the Cond field is satisfied by the CPSR register
-
 	bool immediate_operand = (instruction >> 25) & 1;
 	uint8_t opcode = (instruction >> 21) & 0b1111;
 	bool set_condition = (instruction >> 20) & 0b1;
@@ -170,7 +128,7 @@ void dataProcessing(uint32_t instruction) {
 		rotate = (operand2 >> 8) & 0b1111;
 		imm = operand2 & 0b1111111;
 		imm = imm & 0b00000000000000000000000011111111;
-		imm = (unsigned int) ror((uint32_t) imm, (uint32_t) rotate);
+		imm = (unsigned int) rotate_right((uint32_t) imm, (uint32_t) rotate);
 		operand2 = imm;
 	}
 	else {
@@ -259,8 +217,6 @@ void multiply(uint32_t instruction) {
 		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0);
 	}
 }
-
-
 
 void singleDataTransfer(uint32_t instruction) {
 	bool immediateOffset = (instruction >> 25) & 1;
