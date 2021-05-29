@@ -107,6 +107,8 @@ uint32_t shift(uint32_t offset) {
 	return 0;
 }
 
+
+
 void dataProcessing(uint32_t instruction) {
 	bool immediate_operand = (instruction >> 25) & 1;
 	uint8_t opcode = (instruction >> 21) & 0b1111;
@@ -115,85 +117,92 @@ void dataProcessing(uint32_t instruction) {
 	uint8_t register_d = (instruction >> 12) & 0b1111;
 
 	unsigned int operand2 = (instruction >> 11) & 0b111111111111;
-	unsigned int rotate;
-	unsigned int imm;
+	uint32_t rotate;
+	unsigned int imm; // This will be zero-extended from unsigned 8-bit to 32-bit
 	
-
-	unsigned int shiftToDo;
 	uint8_t register_m;
 	uint8_t register_s;
+
+	uint32_t result;
+
+	bool isLogic;
+	isLogic = 0;
 
 	if (immediate_operand) {
 		// operand2 is an immediate constant
 		rotate = (operand2 >> 8) & 0b1111;
-		imm = operand2 & 0b1111111;
-		imm = imm & 0b00000000000000000000000011111111;
-		imm = (unsigned int) rotate_right((uint32_t) imm, (uint32_t) rotate);
+		imm = operand2 & 0b11111111;
+		imm = imm & 0b00000000000000000000000011111111; // Zero-extended to 32bit
+		imm = (unsigned int) rotate_right((uint32_t) imm, (rotate << 1) & 0b1111); // Shifted 1 to the left to multiply by 2
 		operand2 = imm;
 	}
 	else {
 		//operand2 is a shifted register
-		shiftToDo = (operand2 >> 4) & 0b11111111;
-		register_m = (operand2 >> 0) & 0b1111;
-
-		if ((shiftToDo >> 0) & 0b1) { // Shift specified by a register
-			operand2 = shift((uint32_t) operand2);
-
-		}
-		else { // Shift by a constant amount
-			operand2 = shift((uint32_t) operand2);			
-		
-		}
+		operand2 = shift(operand2);
 	}
 
 	switch (opcode) {
 		case 0b0000: //and
-			register_d = (uint8_t) (register_n & operand2);
+			result = ((uint32_t) register_n & operand2);
+			Registers[register_d] = result;
+			isLogic = 1;
 			break;
 		case 0b0001: //eor
-			register_d = (uint8_t) (register_n ^ operand2); 
+			result = ((uint32_t) register_n ^ operand2);
+			Registers[register_d] = result;
+			isLogic = 1; 
 			break;
 		case 0b0010: //sub
-			register_d = (uint8_t) (register_n - operand2);	
+			result = ((uint32_t)register_n - operand2);	
+			Registers[register_d] = result;
 			break;
 		case 0b0011: //rsb
-			register_d = (uint8_t) (operand2 - register_n);		
+			result = (operand2 - (uint32_t) register_n);	
+			Registers[register_d] = result;
 			break;
 		case 0b0100: //add
-			register_d = (uint8_t) (operand2 + register_n);
+			result = (operand2 + (uint32_t) register_n);
+			Registers[register_d] = result;
 			break;
 		case 0b1000: //tst
-			// register_n & operand2 (not written)
+			result = (uint32_t) register_n & operand2;
 			break;
 		case 0b1001: //teq
-			// (uint8_t) (register_n ^ operand2) (not written)
+			result = (uint32_t) register_n ^ operand2;
 			break;
 		case 0b1010: //cmp
-			// (uint8_t) (register_n - operand2) (not written)
+			result = (uint32_t) register_n - operand2;
 			break;
 		case 0b1100: //orr
-			register_d = (uint8_t) (register_n & operand2);
+			result = ((uint32_t) register_n | operand2);
+			Registers[register_d] = result;
+			isLogic = 1;
 			break;
 		case 0b1101: //mov
-			register_d = (uint8_t) operand2;
+			result = operand2;
+			Registers[register_d] = result;
 			break;
 	}
 	
 
 	if (set_condition) {
-		// V bit is unaffected
-
 		// For C bit: if logic operation -> set to carry out from any shift operation (result from barrel shifter)
 		//            if arithmetic      -> set the the carry out from the ALU (1 for addition if there was a carry,
-		//																		0 for subtraction if there was a borrow)   
+		//																		0 for subtraction if there was a borrow)
+
+		if (isLogic) {
+
+		}
+		else {
+			
+		}
 
 		// Z = 1 if the result is all 0s
-
+		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0b0);
 		// N = logical value of 31st bit of result
-
+		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 1);
 	}
 
-	//results may be written to the register specified by register_d
 	printf("data processed\n");
 }
 
