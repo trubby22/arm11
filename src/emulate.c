@@ -62,18 +62,26 @@ bool cond(uint8_t code) {
 	return true;
 }
 
-/* Piotr's version of the shift functions
+// Piotr's version of the shift functions
+
+void setCarry(uint32_t value) {
+	if (value == 1) {
+		Registers[16] |= (1 << 29);
+	} else {
+		Registers[16] &= ~(1 << 29);
+	}
+}
 
 uint32_t lslOnce(uint32_t num) {
-	uint32_t carry = num >> 31;
+	uint32_t carry = (num >> 31);
 	printf("Carry: %d\n", carry);
-	uint32_t result = num << 1;
-	Registers[16] |= carry << 29;
+	uint32_t result = (num << 1);
+	setCarry(carry);
 	return result;
 }
 
 uint32_t lsl(uint32_t identifier, uint32_t value) {
-	uint32_t result = identifier;
+	uint32_t result = Registers[identifier];
 	for (int i = 0; i < value; i++) {
 		result = lslOnce(result);
 	}
@@ -84,14 +92,14 @@ uint32_t lsrOnce(uint32_t num) {
 	uint32_t carry = num & 1;
 	printf("Carry: %d\n", carry);
 	uint32_t result = num >> 1;
-	Registers[16] |= carry << 29;
+	setCarry(carry);
 	return result;
 }
 
 uint32_t lsr(uint32_t identifier, uint32_t value) {
-	uint32_t result = identifier;
+	uint32_t result = Registers[identifier];
 	for (int i = 0; i < value; i++) {
-		result = lsrOnce(result);
+	result = lsrOnce(result);
 	}
 	return result;
 }
@@ -102,12 +110,12 @@ uint32_t asrOnce(uint32_t num) {
 	printf("Carry: %d\n", carry);
 	uint32_t result = num >> 1;
 	result |= highBit << 31;
-	Registers[16] |= carry << 29;
+	setCarry(carry);
 	return result;
 }
 
 uint32_t asr(uint32_t identifier, uint32_t value) {
-	uint32_t result = identifier;
+	uint32_t result = Registers[identifier];
 	for (int i = 0; i < value; i++) {
 		result = asrOnce(result);
 	}
@@ -120,46 +128,54 @@ uint32_t rorOnce(uint32_t num) {
 	printf("Carry: %d\n", carry);
 	uint32_t result = num >> 1;
 	result |= lowBit << 31;
-	Registers[16] |= carry << 29;
+	setCarry(carry);
 	return result;
 }
 
 uint32_t ror(uint32_t identifier, uint32_t value) {
-	uint32_t result = identifier;
+	uint32_t result = Registers[identifier];
 	for (int i = 0; i < value; i++) {
 		result = rorOnce(result);
 	}
 	return result;
 }
 
-uint32_t shift(uint32_t offset) {
+uint32_t shift_2(uint32_t offset) {
 	assert(offset <= 0xfff && "Offset should be 12 bits only");
-	uint32_t shift, rm, shiftType, integer;
-	shift = offset >> 4;
-	rm = offset & 0xf;
-	if ((shift & 0b1) == 0) {
-		shiftType = (shift >> 1) & 0b11;
-		integer = shift >> 3;
+	uint32_t shift, rm, shiftType, integer, result;
+	shift = (offset >> 4);
+	rm = (offset & 0xf);
+	if ((shift & 1) == 0) {
+		shiftType = ((shift >> 1) & 0b11);
+		integer = (shift >> 3);
 	} else {
 		// optional, maybe TODO later
 	}
 	switch (shiftType) {
 		case 0b00:
-			return lsl(rm, integer);
+			printf("lsl\n");
+			result = lsl(rm, integer);
+			break;
 		case 0b01:
-			return lsr(rm, integer);
+			printf("lsr\n");
+			result = lsr(rm, integer);
+			break;
 		case 0b10:
-			return asr(rm, integer);
+			printf("asr\n");
+			result =  asr(rm, integer);
+			break;
 		case 0b11:
-			return ror(rm, integer);
+			printf("ror\n");
+			result = ror(rm, integer);
+			break;
 		default:
 			printf("Incorrect shift type");
 			// how to throw an exception here?
 			return 0;
 	}
+	return result;
 }
 
-*/
 
 uint32_t arithmetic_right(uint32_t register_value, uint8_t shift_value) {
 	bool negative = register_value >> 31 && 1;
