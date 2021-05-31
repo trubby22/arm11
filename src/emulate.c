@@ -306,14 +306,22 @@ void dataProcessing(uint32_t instruction) {
 		//																		0 for subtraction if there was a borrow)
 
 		if (isLogic) {
-
+			set_bit(Registers + CPSR_REGISTER, CPSR_C, Registers[16] & 0b1);
 		}
 		else {
-			
+			if (opcode == 0b0100 & Registers[16] & 0b1) {
+				set_bit(Registers + CPSR_REGISTER, CPSR_C, 0b1);
+			}
+			else if ((opcode == 0b0010 | opcode == 0b0011) & Registers[16] & 0b1) {
+				set_bit(Registers + CPSR_REGISTER, CPSR_C, 0b1);
+			}
+			else {
+				set_bit(Registers + CPSR_REGISTER, CPSR_C, 0b0);
+			}
 		}
 
 		// Z = 1 if the result is all 0s
-		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0b0);
+		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0b00000000);
 		// N = logical value of 31st bit of result
 		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 1);
 	}
