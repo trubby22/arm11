@@ -153,33 +153,33 @@ void dataProcessing(uint32_t instruction) {
 		isLogic = 1;
 		break;
 	case 0b0001: //eor
-		result = ((uint32_t)register_n ^ operand2);
+		result = ((uint32_t)Registers[register_n] ^ operand2);
 		Registers[register_d] = result;
 		isLogic = 1;
 		break;
 	case 0b0010: //sub
-		result = ((uint32_t)register_n - operand2);
+		result = ((uint32_t)Registers[register_n] - operand2);
 		Registers[register_d] = result;
 		break;
 	case 0b0011: //rsb
-		result = (operand2 - (uint32_t)register_n);
+		result = (operand2 - (uint32_t)Registers[register_n]);
 		Registers[register_d] = result;
 		break;
 	case 0b0100: //add
-		result = (operand2 + (uint32_t)register_n);
+		result = (operand2 + (uint32_t)Registers[register_n]);
 		Registers[register_d] = result;
 		break;
 	case 0b1000: //tst
-		result = (uint32_t)register_n & operand2;
+		result = (uint32_t)Registers[register_n] & operand2;
 		break;
 	case 0b1001: //teq
-		result = (uint32_t)register_n ^ operand2;
+		result = (uint32_t)Registers[register_n] ^ operand2;
 		break;
 	case 0b1010: //cmp
-		result = (uint32_t)register_n - operand2;
+		result = (uint32_t)Registers[register_n] - operand2;
 		break;
 	case 0b1100: //orr
-		result = ((uint32_t)register_n | operand2);
+		result = ((uint32_t)Registers[register_n] | operand2);
 		Registers[register_d] = result;
 		isLogic = 1;
 		break;
@@ -188,6 +188,7 @@ void dataProcessing(uint32_t instruction) {
 		Registers[register_d] = result;
 		break;
 	}
+	
 
 
 	if (set_condition) {
