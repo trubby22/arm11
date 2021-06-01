@@ -148,7 +148,7 @@ void dataProcessing(uint32_t instruction) {
 
 	switch (opcode) {
 	case 0b0000: //and
-		result = ((uint32_t)register_n & operand2);
+		result = ((uint32_t)Registers[register_n] & operand2);
 		Registers[register_d] = result;
 		isLogic = 1;
 		break;
@@ -287,15 +287,15 @@ void print_state(uint16_t program_size) {
 	printf("Registers\n");
 	uint16_t i;
 	for (i = 0; i <= 9; i++)
-		printf("$%d  :\t %d (0x%08x)\n", i, Registers[i], Registers[i]);
+		printf("$%d  :%11d (0x%08x)\n", i, Registers[i], Registers[i]);
 	for (i = 10; i <= 12; i++)
-		printf("$%d :\t %d (0x%08x)\n", i, Registers[i], Registers[i]);
+		printf("$%d :%11d (0x%08x)\n", i, Registers[i], Registers[i]);
 
-	printf("PC  :\t %d (0x%08x)\n", Registers[PC_REGISTER], Registers[PC_REGISTER]);
-	printf("CPSR:\t %d (0x%08x)\n", Registers[CPSR_REGISTER], Registers[CPSR_REGISTER]);
+	printf("PC  :%11d (0x%08x)\n", Registers[PC_REGISTER], Registers[PC_REGISTER]);
+	printf("CPSR:%11d (0x%08x)\n", Registers[CPSR_REGISTER], Registers[CPSR_REGISTER]);
 	printf("Non-zero memory: \n");
 	for (i = 0; i <= program_size; i += 4) {
-		printf("0x%08x:  0x%08x\n", i, read_ram(i));
+		printf("0x%08x: 0x%08x\n", i, read_ram(i));
 	}
 }
 
