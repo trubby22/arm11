@@ -294,8 +294,9 @@ void print_state(uint16_t program_size) {
 	printf("PC  :\t %d (0x%08x)\n", Registers[PC_REGISTER], Registers[PC_REGISTER]);
 	printf("CPSR:\t %d (0x%08x)\n", Registers[CPSR_REGISTER], Registers[CPSR_REGISTER]);
 	printf("Non-zero memory: \n");
-	for (i = 0; i <= program_size; i += 4) {
-		printf("0x%08x:  0x%08x\n", i, read_ram(i));
+	for (i = 0; i < RAM_SIZE; i += 4) {
+		if(read_ram(i) != 0)
+			printf("0x%08x:  0x%08x\n", i, read_ram(i));
 	}
 }
 
@@ -347,6 +348,9 @@ int main(int argc, char* argv[]) {
 		decoded = fetched;
 		fetched = fetch();
 	}
+
+	//to account for one extra fetch
+	Registers[PC_REGISTER] -= 4;
 
 	print_state(program_size);
 
