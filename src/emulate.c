@@ -294,7 +294,7 @@ void print_state(uint16_t program_size) {
 	printf("PC  :%11d (0x%08x)\n", Registers[PC_REGISTER], Registers[PC_REGISTER]);
 	printf("CPSR:%11d (0x%08x)\n", Registers[CPSR_REGISTER], Registers[CPSR_REGISTER]);
 	printf("Non-zero memory: \n");
-	for (i = 0; i < RAM_SIZE; i += 4) {
+	for (i = 0; i < program_size; i += 4) {
 		if(read_ram(i) != 0)
 			printf("0x%08x:  0x%08x\n", i, read_ram(i));
 	}
