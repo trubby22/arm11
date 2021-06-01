@@ -1,3 +1,17 @@
+/**
+
+* File Name: emulate.c
+
+* Authors: DANIEL ONG, MICHAEL MABO, PIOTR BLASZYK, TAHMID RAHMAN
+
+* Date: 01/06/2021
+
+* Description: a program that emulates an ARM11
+
+* Input: Requires a binary file to run
+
+*/
+
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
