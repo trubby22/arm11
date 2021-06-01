@@ -334,8 +334,9 @@ int main(int argc, char* argv[]) {
 
 			case 0b10:
 				branch(execute);
-				decoded = 0;
-				fetched = 0;
+				execute = decoded;
+				decoded = fetched;
+				fetched = fetch();
 				break;
 
 			default:
