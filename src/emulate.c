@@ -6,9 +6,9 @@
 
 * Date: 01/06/2021
 
-* Description: a program that emulates an ARM11
+* Description: A program that emulates an ARM11
 
-* Input: Requires a binary file to run
+* Input: Requires a binary file input
 
 */
 
@@ -76,127 +76,12 @@ bool cond(uint8_t code) {
 	return true;
 }
 
-// Piotr's version of the shift functions
-
-void setCarry(uint32_t value) {
-	if (value == 1) {
-		Registers[16] |= (1 << 29);
-	} else {
-		Registers[16] &= ~(1 << 29);
-	}
-}
-
-uint32_t lslOnce(uint32_t num) {
-	uint32_t carry = (num >> 31);
-	printf("Carry: %d\n", carry);
-	uint32_t result = (num << 1);
-	setCarry(carry);
-	return result;
-}
-
-uint32_t lsl(uint32_t identifier, uint32_t value) {
-	uint32_t result = Registers[identifier];
-	for (int i = 0; i < value; i++) {
-		result = lslOnce(result);
-	}
-	return result;
-}
-
-uint32_t lsrOnce(uint32_t num) {
-	uint32_t carry = num & 1;
-	printf("Carry: %d\n", carry);
-	uint32_t result = num >> 1;
-	setCarry(carry);
-	return result;
-}
-
-uint32_t lsr(uint32_t identifier, uint32_t value) {
-	uint32_t result = Registers[identifier];
-	for (int i = 0; i < value; i++) {
-	result = lsrOnce(result);
-	}
-	return result;
-}
-
-uint32_t asrOnce(uint32_t num) {
-	uint32_t carry = num & 1;
-	uint32_t highBit = num >> 31;
-	printf("Carry: %d\n", carry);
-	uint32_t result = num >> 1;
-	result |= highBit << 31;
-	setCarry(carry);
-	return result;
-}
-
-uint32_t asr(uint32_t identifier, uint32_t value) {
-	uint32_t result = Registers[identifier];
-	for (int i = 0; i < value; i++) {
-		result = asrOnce(result);
-	}
-	return result;
-}
-
-uint32_t rorOnce(uint32_t num) {
-	uint32_t carry = num & 1;
-	uint32_t lowBit = num & 1;
-	printf("Carry: %d\n", carry);
-	uint32_t result = num >> 1;
-	result |= lowBit << 31;
-	setCarry(carry);
-	return result;
-}
-
-uint32_t ror(uint32_t identifier, uint32_t value) {
-	uint32_t result = Registers[identifier];
-	for (int i = 0; i < value; i++) {
-		result = rorOnce(result);
-	}
-	return result;
-}
-
-uint32_t shift_2(uint32_t offset) {
-	assert(offset <= 0xfff && "Offset should be 12 bits only");
-	uint32_t shift, rm, shiftType, integer, result;
-	shift = (offset >> 4);
-	rm = (offset & 0xf);
-	if ((shift & 1) == 0) {
-		shiftType = ((shift >> 1) & 0b11);
-		integer = (shift >> 3);
-	} else {
-		// optional, maybe TODO later
-	}
-	switch (shiftType) {
-		case 0b00:
-			printf("lsl\n");
-			result = lsl(rm, integer);
-			break;
-		case 0b01:
-			printf("lsr\n");
-			result = lsr(rm, integer);
-			break;
-		case 0b10:
-			printf("asr\n");
-			result =  asr(rm, integer);
-			break;
-		case 0b11:
-			printf("ror\n");
-			result = ror(rm, integer);
-			break;
-		default:
-			printf("Incorrect shift type");
-			// how to throw an exception here?
-			return 0;
-	}
-	return result;
-}
-
-
 uint32_t arithmetic_right(uint32_t register_value, uint8_t shift_value) {
 	bool negative = register_value >> 31 && 1;
 	uint32_t result = register_value >> shift_value;
 
-	if (negative) 
-		for (uint32_t i = 0; i < shift_value; i++) 
+	if (negative)
+		for (uint32_t i = 0; i < shift_value; i++)
 			result |= 1 << (31 - i);
 
 	return result;
@@ -204,11 +89,11 @@ uint32_t arithmetic_right(uint32_t register_value, uint8_t shift_value) {
 
 uint32_t rotate_right(uint32_t register_value, uint8_t shift_value) {
 	uint32_t shifted_value = register_value >> shift_value;
-	uint32_t rotated_value = register_value << (31 - shift_value);
+	uint32_t rotated_value = register_value << (32 - shift_value);
 	return shifted_value | rotated_value;
 }
 
-uint32_t shift(uint32_t offset) { 
+uint32_t shift(uint32_t offset) {
 	uint8_t register_m = offset & 0b1111;
 	bool variable = (offset >> 4) & 0b1;
 	uint8_t shift_type = (offset >> 5) & 0b11;
@@ -239,31 +124,22 @@ uint32_t shift(uint32_t offset) {
 
 
 void dataProcessing(uint32_t instruction) {
-	bool immediate_operand = (instruction >> 25) & 1;
-	uint8_t opcode = (instruction >> 21) & 0b1111;
-	bool set_condition = (instruction >> 20) & 0b1;
-	uint8_t register_n = (instruction >> 16) & 0b1111;
+	uint32_t operand2 = instruction & 0xfff;
 	uint8_t register_d = (instruction >> 12) & 0b1111;
+	uint8_t register_n = (instruction >> 16) & 0b1111;
+	bool set_condition = (instruction >> 20) & 1;
+	uint8_t opcode = (instruction >> 21) & 0b1111;
+	bool immediate_operand = (instruction >> 25) & 1;
 
-	unsigned int operand2 = (instruction >> 11) & 0b111111111111;
-	uint32_t rotate;
-	unsigned int imm; // This will be zero-extended from unsigned 8-bit to 32-bit
-	
-	uint8_t register_m;
-	uint8_t register_s;
+	uint32_t result = 0;
 
-	uint32_t result;
-
-	bool isLogic;
-	isLogic = 0;
+	bool isLogic = false;
 
 	if (immediate_operand) {
 		// operand2 is an immediate constant
-		rotate = (operand2 >> 8) & 0b1111;
-		imm = operand2 & 0b11111111;
-		imm = imm & 0b00000000000000000000000011111111; // Zero-extended to 32bit
-		imm = (unsigned int) rotate_right((uint32_t) imm, (rotate << 1) & 0b1111); // Shifted 1 to the left to multiply by 2
-		operand2 = imm;
+		uint8_t rotate = operand2 >> 8;
+		uint8_t imm = operand2 & 0xff;
+		operand2 = rotate_right(imm, rotate << 1); // Shifted 1 to the left to multiply by 2
 	}
 	else {
 		//operand2 is a shifted register
@@ -271,48 +147,48 @@ void dataProcessing(uint32_t instruction) {
 	}
 
 	switch (opcode) {
-		case 0b0000: //and
-			result = ((uint32_t) register_n & operand2);
-			Registers[register_d] = result;
-			isLogic = 1;
-			break;
-		case 0b0001: //eor
-			result = ((uint32_t) register_n ^ operand2);
-			Registers[register_d] = result;
-			isLogic = 1; 
-			break;
-		case 0b0010: //sub
-			result = ((uint32_t)register_n - operand2);	
-			Registers[register_d] = result;
-			break;
-		case 0b0011: //rsb
-			result = (operand2 - (uint32_t) register_n);	
-			Registers[register_d] = result;
-			break;
-		case 0b0100: //add
-			result = (operand2 + (uint32_t) register_n);
-			Registers[register_d] = result;
-			break;
-		case 0b1000: //tst
-			result = (uint32_t) register_n & operand2;
-			break;
-		case 0b1001: //teq
-			result = (uint32_t) register_n ^ operand2;
-			break;
-		case 0b1010: //cmp
-			result = (uint32_t) register_n - operand2;
-			break;
-		case 0b1100: //orr
-			result = ((uint32_t) register_n | operand2);
-			Registers[register_d] = result;
-			isLogic = 1;
-			break;
-		case 0b1101: //mov
-			result = operand2;
-			Registers[register_d] = result;
-			break;
+	case 0b0000: //and
+		result = ((uint32_t)register_n & operand2);
+		Registers[register_d] = result;
+		isLogic = 1;
+		break;
+	case 0b0001: //eor
+		result = ((uint32_t)register_n ^ operand2);
+		Registers[register_d] = result;
+		isLogic = 1;
+		break;
+	case 0b0010: //sub
+		result = ((uint32_t)register_n - operand2);
+		Registers[register_d] = result;
+		break;
+	case 0b0011: //rsb
+		result = (operand2 - (uint32_t)register_n);
+		Registers[register_d] = result;
+		break;
+	case 0b0100: //add
+		result = (operand2 + (uint32_t)register_n);
+		Registers[register_d] = result;
+		break;
+	case 0b1000: //tst
+		result = (uint32_t)register_n & operand2;
+		break;
+	case 0b1001: //teq
+		result = (uint32_t)register_n ^ operand2;
+		break;
+	case 0b1010: //cmp
+		result = (uint32_t)register_n - operand2;
+		break;
+	case 0b1100: //orr
+		result = ((uint32_t)register_n | operand2);
+		Registers[register_d] = result;
+		isLogic = 1;
+		break;
+	case 0b1101: //mov
+		result = operand2;
+		Registers[register_d] = result;
+		break;
 	}
-	
+
 
 	if (set_condition) {
 		// For C bit: if logic operation -> set to carry out from any shift operation (result from barrel shifter)
@@ -323,10 +199,10 @@ void dataProcessing(uint32_t instruction) {
 			set_bit(Registers + CPSR_REGISTER, CPSR_C, Registers[16] & 0b1);
 		}
 		else {
-			if (opcode == 0b0100 & Registers[16] & 0b1) {
+			if ((opcode == 0b0100) && (Registers[16] & 0b1)) {
 				set_bit(Registers + CPSR_REGISTER, CPSR_C, 0b1);
 			}
-			else if ((opcode == 0b0010 | opcode == 0b0011) & Registers[16] & 0b1) {
+			else if ((opcode == 0b0010) || (opcode == 0b0011) && (Registers[16] & 0b1)) {
 				set_bit(Registers + CPSR_REGISTER, CPSR_C, 0b1);
 			}
 			else {
@@ -335,7 +211,7 @@ void dataProcessing(uint32_t instruction) {
 		}
 
 		// Z = 1 if the result is all 0s
-		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0b00000000);
+		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0);
 		// N = logical value of 31st bit of result
 		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 1);
 	}
