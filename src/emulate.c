@@ -356,41 +356,33 @@ void multiply(uint32_t instruction) {
 }
 
 void singleDataTransfer(uint32_t instruction) {
-	bool immediateOffset = (instruction >> 25) & 1;
-	bool pIndexing = (instruction >> 24) & 1;
+	bool immediate_offset = (instruction >> 25) & 1;
+	bool pre_indexing = (instruction >> 24) & 1;
 	bool up = (instruction >> 23) & 1;
 	bool load = (instruction >> 20) & 1;
-	uint8_t baseRegister = (instruction >> 16) & 0b1111; // holds memory address
-	uint8_t sourceRegister = (instruction >> 12) & 0b1111;  // holds value
+	uint8_t register_n = (instruction >> 16) & 0b1111; // holds memory address
+	uint8_t register_m = (instruction >> 12) & 0b1111;  // holds value
 	uint32_t offset = instruction & 0xfff;
-	uint32_t mem;
+	uint32_t memory = Registers[register_n];
 
-	if (immediateOffset) {
-		offset = shift_2(offset);
-	}
+	if (immediate_offset) 
+		offset = shift(offset);
 
-	uint32_t offsetBaseRegister = 0;
-	if (up) {
-		offsetBaseRegister = Registers[baseRegister] + offset;
-	} else {
-		offsetBaseRegister = Registers[baseRegister] - offset;
-	}
+	if (up) 
+		offset = Registers[register_n] + offset;
+	else 
+		offset = Registers[register_n] - offset;
 
-	if (pIndexing) {
-		mem = offsetBaseRegister;
-	} else {
-		mem = Registers[baseRegister];
-	}
+	if (pre_indexing) 
+		memory = offset;
 
-	if (load) {
-		Registers[sourceRegister] = read_ram(mem);
-	} else {
-		write_ram(mem, Registers[sourceRegister]);
-	}
+	if (load) 
+		Registers[register_m] = read_ram(memory);
+	else 
+		write_ram(memory, Registers[register_m]);
 
-	if (!pIndexing) {
-		Registers[baseRegister] = offsetBaseRegister;
-	}
+	if (!pre_indexing) 
+		Registers[register_n] = offset;
 }
 
 void branch(uint32_t instruction) {
