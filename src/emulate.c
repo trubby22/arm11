@@ -106,12 +106,14 @@ uint32_t shift(uint32_t offset, bool set_condition) {
 		assert(register_s != PC_REGISTER && "shift register cannot be PC_REGISTER");
 		shift_value = Registers[register_s] & 0xff;
 	}
+
 	if (set_condition && shift_value != 0) {
 		if (shift_type == 0) 
 			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> (31 - shift_value)) & 1);
 		else
 			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> shift_value) & 1);
 	}
+
 	switch (shift_type) {
 	case 0b00:
 		return register_value << shift_value;
@@ -325,8 +327,6 @@ int main(int argc, char* argv[]) {
 	uint32_t execute = fetch();
 	uint32_t decoded = fetch();
 	uint32_t fetched = fetch();
-
-
 
 	while (execute != 0) {
 		uint8_t code = (execute >> 28) & 0b1111;
