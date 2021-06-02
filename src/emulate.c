@@ -451,8 +451,7 @@ int main(int argc, char* argv[]) {
 	uint32_t decoded = fetch();
 	uint32_t fetched = fetch();
 
-	//to account for one extra fetch
-	Registers[PC_REGISTER] -= 4;
+
 
 	while (execute != 0) {
 		uint8_t code = (execute >> 28) & 0b1111;
@@ -487,6 +486,9 @@ int main(int argc, char* argv[]) {
 		decoded = fetched;
 		fetched = fetch();
 	}
+
+	//to account for one extra fetch
+	Registers[PC_REGISTER] -= 4;
 
 	print_state(program_size);
 
