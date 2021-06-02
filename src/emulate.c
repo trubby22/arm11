@@ -76,6 +76,120 @@ bool cond(uint8_t code) {
 	return true;
 }
 
+// Piotr's version of the shift functions
+
+void setCarry(uint32_t value) {
+	if (value == 1) {
+		Registers[16] |= (1 << 29);
+	} else {
+		Registers[16] &= ~(1 << 29);
+	}
+}
+
+uint32_t lslOnce(uint32_t num) {
+	uint32_t carry = (num >> 31);
+//	printf("Carry: %d\n", carry);
+	uint32_t result = (num << 1);
+	setCarry(carry);
+	return result;
+}
+
+uint32_t lsl(uint32_t identifier, uint32_t value) {
+	uint32_t result = Registers[identifier];
+	for (int i = 0; i < value; i++) {
+		result = lslOnce(result);
+	}
+	return result;
+}
+
+uint32_t lsrOnce(uint32_t num) {
+	uint32_t carry = num & 1;
+//	printf("Carry: %d\n", carry);
+	uint32_t result = num >> 1;
+	setCarry(carry);
+	return result;
+}
+
+uint32_t lsr(uint32_t identifier, uint32_t value) {
+	uint32_t result = Registers[identifier];
+	for (int i = 0; i < value; i++) {
+		result = lsrOnce(result);
+	}
+	return result;
+}
+
+uint32_t asrOnce(uint32_t num) { // add a 16-bit version? e.g. for when Registers[rm] = 0x80000001 ==> overflow
+	uint32_t carry = num & 1;
+	uint32_t highBit = num >> 31;
+//	printf("Carry: %d\n", carry);
+	uint32_t result = num >> 1;
+	result |= highBit << 31;
+	setCarry(carry);
+	return result;
+}
+
+uint32_t asr(uint32_t identifier, uint32_t value) {
+	uint32_t result = Registers[identifier];
+	for (int i = 0; i < value; i++) {
+		result = asrOnce(result);
+	}
+	return result;
+}
+
+uint32_t rorOnce(uint32_t num) {  // same comment as for asrOnce
+	uint32_t carry = num & 1;
+	uint32_t lowBit = num & 1;
+//	printf("Carry: %d\n", carry);
+	uint32_t result = num >> 1;
+	result |= lowBit << 31;
+	setCarry(carry);
+	return result;
+}
+
+uint32_t ror(uint32_t identifier, uint32_t value) {
+	uint32_t result = Registers[identifier];
+	for (int i = 0; i < value; i++) {
+		result = rorOnce(result);
+	}
+	return result;
+}
+
+uint32_t shift_2(uint32_t offset) {
+	assert(offset <= 0xfff && "Offset should be 12 bits only");
+	uint32_t shift, rm, shiftType, integer, result;
+	shift = (offset >> 4);
+	rm = (offset & 0xf);
+	if ((shift & 1) == 0) {
+		shiftType = ((shift >> 1) & 0b11);
+		integer = (shift >> 3);
+	} else {
+		// optional, maybe TODO later
+	}
+	switch (shiftType) {
+		case 0b00:
+//			printf("lsl\n");
+			result = lsl(rm, integer);
+			break;
+		case 0b01:
+//			printf("lsr\n");
+			result = lsr(rm, integer);
+			break;
+		case 0b10:
+//			printf("asr\n");
+			result =  asr(rm, integer);
+			break;
+		case 0b11:
+//			printf("ror\n");
+			result = ror(rm, integer);
+			break;
+		default:
+//			printf("Incorrect shift type");
+			// how to throw an exception here?
+			return 0;
+	}
+	return result;
+}
+
 uint32_t arithmetic_right(uint32_t register_value, uint8_t shift_value) {
 	bool negative = register_value >> 31 && 1;
 	uint32_t result = register_value >> shift_value;
@@ -217,7 +331,7 @@ void dataProcessing(uint32_t instruction) {
 		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 1);
 	}
 
-	printf("data processed\n");
+//	printf("data processed\n");
 }
 
 void multiply(uint32_t instruction) {
@@ -246,29 +360,37 @@ void singleDataTransfer(uint32_t instruction) {
 	bool pIndexing = (instruction >> 24) & 1;
 	bool up = (instruction >> 23) & 1;
 	bool load = (instruction >> 20) & 1;
-	uint8_t baseRegister = (instruction >> 16) & 0b1111;
-	uint8_t sourceRegister = (instruction >> 12) & 0b1111;
+	uint8_t baseRegister = (instruction >> 16) & 0b1111; // holds memory address
+	uint8_t sourceRegister = (instruction >> 12) & 0b1111;  // holds value
 	uint32_t offset = instruction & 0xfff;
+	uint32_t mem;
 
-	if (immediateOffset)
-		offset = shift(offset);
+	if (immediateOffset) {
+		offset = shift_2(offset);
+	}
 
 	uint32_t offsetBaseRegister = 0;
-	if (up)
+	if (up) {
 		offsetBaseRegister = Registers[baseRegister] + offset;
-	else
+	} else {
 		offsetBaseRegister = Registers[baseRegister] - offset;
+	}
 
-	if (pIndexing)
+	if (pIndexing) {
+		mem = offsetBaseRegister;
+	} else {
+		mem = Registers[baseRegister];
+	}
+
+	if (load) {
+		Registers[sourceRegister] = read_ram(mem);
+	} else {
+		write_ram(mem, Registers[sourceRegister]);
+	}
+
+	if (!pIndexing) {
 		Registers[baseRegister] = offsetBaseRegister;
-
-	if (load)
-		Registers[sourceRegister] = read_ram(Registers[baseRegister]);
-	else
-		write_ram(Registers[baseRegister], Registers[sourceRegister]);
-
-	if (!pIndexing)
-		Registers[baseRegister] = offsetBaseRegister;
+	}
 }
 
 void branch(uint32_t instruction) {
@@ -284,8 +406,18 @@ uint32_t fetch() {
 	return fetched;
 }
 
+// swap used to convert from big endian to little endian
+
+uint32_t swap (uint32_t num) {
+	uint32_t swapped = ((num>>24)&0xff) | // move byte 3 to byte 0
+            ((num<<8)&0xff0000) | // move byte 1 to byte 2
+            ((num>>8)&0xff00) | // move byte 2 to byte 1
+            ((num<<24)&0xff000000); // byte 0 to byte 3
+	return swapped;
+}
+
 void print_state(uint16_t program_size) {
-	printf("Registers\n");
+	printf("Registers:\n");
 	uint16_t i;
 	for (i = 0; i <= 9; i++)
 		printf("$%d  :%11d (0x%08x)\n", i, Registers[i], Registers[i]);
@@ -294,10 +426,13 @@ void print_state(uint16_t program_size) {
 
 	printf("PC  :%11d (0x%08x)\n", Registers[PC_REGISTER], Registers[PC_REGISTER]);
 	printf("CPSR:%11d (0x%08x)\n", Registers[CPSR_REGISTER], Registers[CPSR_REGISTER]);
-	printf("Non-zero memory: \n");
-	for (i = 0; i < program_size; i += 4) {
+	printf("Non-zero memory:\n");
+	for (i = 0; i <= 65532; i += 4) {
 		if(read_ram(i) != 0)
-			printf("0x%08x:  0x%08x\n", i, read_ram(i));
+			printf("0x%08x: 0x%08x\n", i, swap(read_ram(i))); // if you want to view numbers in regular big endian format, delete swap here
+		if (i == 65532) {
+			break;
+		}
 	}
 }
 
@@ -315,6 +450,9 @@ int main(int argc, char* argv[]) {
 	uint32_t execute = fetch();
 	uint32_t decoded = fetch();
 	uint32_t fetched = fetch();
+
+	//to account for one extra fetch
+	Registers[PC_REGISTER] -= 4;
 
 	while (execute != 0) {
 		uint8_t code = (execute >> 28) & 0b1111;
@@ -349,9 +487,6 @@ int main(int argc, char* argv[]) {
 		decoded = fetched;
 		fetched = fetch();
 	}
-
-	//to account for one extra fetch
-	Registers[PC_REGISTER] -= 4;
 
 	print_state(program_size);
 
