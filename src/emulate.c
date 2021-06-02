@@ -267,6 +267,11 @@ void singleDataTransfer(uint32_t instruction) {
 	if (pre_indexing)
 		memory = offset;
 
+	if (memory < 0 || memory >= RAM_SIZE) {
+		printf("Error: Out of bounds memory access at address 0x%08x\n", memory);
+		return;
+	}
+
 	if (load)
 		Registers[register_m] = read_ram(memory);
 	else
@@ -344,6 +349,8 @@ int main(int argc, char* argv[]) {
 	uint32_t fetched = fetch();
 
 	while (execute != 0) {
+		//printf("loop, instr.: 0x%x\n", execute);
+		//print_state(program_size);
 		uint8_t code = (execute >> 28) & 0b1111;
 		if (cond(code)) {
 			uint8_t instruction = (execute >> 26) & 0b11;
@@ -351,17 +358,22 @@ int main(int argc, char* argv[]) {
 			switch (instruction)
 			{
 			case 0b00:
-				if ((execute >> 4) == 0b1001)
+				if ((execute >> 4) == 0b1001) {
+					//printf("execute\n");
 					multiply(execute);
-				else
+				} else {
+					//printf("DP\n");
 					dataProcessing(execute);
+				}
 				break;
 
 			case 0b01:
+				//printf("SDT\n");
 				singleDataTransfer(execute);
 				break;
 
 			case 0b10:
+				//printf("branch\n");
 				branch(execute);
 				execute = decoded;
 				decoded = fetched;
@@ -369,6 +381,7 @@ int main(int argc, char* argv[]) {
 				break;
 
 			default:
+				//printf("other\n");
 				break;
 			}
 		}
