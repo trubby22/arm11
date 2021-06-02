@@ -76,120 +76,6 @@ bool cond(uint8_t code) {
 	return true;
 }
 
-// Piotr's version of the shift functions
-
-void setCarry(uint32_t value) {
-	if (value == 1) {
-		Registers[16] |= (1 << 29);
-	} else {
-		Registers[16] &= ~(1 << 29);
-	}
-}
-
-uint32_t lslOnce(uint32_t num) {
-	uint32_t carry = (num >> 31);
-//	printf("Carry: %d\n", carry);
-	uint32_t result = (num << 1);
-	setCarry(carry);
-	return result;
-}
-
-uint32_t lsl(uint32_t identifier, uint32_t value) {
-	uint32_t result = Registers[identifier];
-	for (int i = 0; i < value; i++) {
-		result = lslOnce(result);
-	}
-	return result;
-}
-
-uint32_t lsrOnce(uint32_t num) {
-	uint32_t carry = num & 1;
-//	printf("Carry: %d\n", carry);
-	uint32_t result = num >> 1;
-	setCarry(carry);
-	return result;
-}
-
-uint32_t lsr(uint32_t identifier, uint32_t value) {
-	uint32_t result = Registers[identifier];
-	for (int i = 0; i < value; i++) {
-		result = lsrOnce(result);
-	}
-	return result;
-}
-
-uint32_t asrOnce(uint32_t num) { // add a 16-bit version? e.g. for when Registers[rm] = 0x80000001 ==> overflow
-	uint32_t carry = num & 1;
-	uint32_t highBit = num >> 31;
-//	printf("Carry: %d\n", carry);
-	uint32_t result = num >> 1;
-	result |= highBit << 31;
-	setCarry(carry);
-	return result;
-}
-
-uint32_t asr(uint32_t identifier, uint32_t value) {
-	uint32_t result = Registers[identifier];
-	for (int i = 0; i < value; i++) {
-		result = asrOnce(result);
-	}
-	return result;
-}
-
-uint32_t rorOnce(uint32_t num) {  // same comment as for asrOnce
-	uint32_t carry = num & 1;
-	uint32_t lowBit = num & 1;
-//	printf("Carry: %d\n", carry);
-	uint32_t result = num >> 1;
-	result |= lowBit << 31;
-	setCarry(carry);
-	return result;
-}
-
-uint32_t ror(uint32_t identifier, uint32_t value) {
-	uint32_t result = Registers[identifier];
-	for (int i = 0; i < value; i++) {
-		result = rorOnce(result);
-	}
-	return result;
-}
-
-uint32_t shift_2(uint32_t offset) {
-	assert(offset <= 0xfff && "Offset should be 12 bits only");
-	uint32_t shift, rm, shiftType, integer, result;
-	shift = (offset >> 4);
-	rm = (offset & 0xf);
-	if ((shift & 1) == 0) {
-		shiftType = ((shift >> 1) & 0b11);
-		integer = (shift >> 3);
-	} else {
-		// optional, maybe TODO later
-	}
-	switch (shiftType) {
-		case 0b00:
-//			printf("lsl\n");
-			result = lsl(rm, integer);
-			break;
-		case 0b01:
-//			printf("lsr\n");
-			result = lsr(rm, integer);
-			break;
-		case 0b10:
-//			printf("asr\n");
-			result =  asr(rm, integer);
-			break;
-		case 0b11:
-//			printf("ror\n");
-			result = ror(rm, integer);
-			break;
-		default:
-//			printf("Incorrect shift type");
-			// how to throw an exception here?
-			return 0;
-	}
-	return result;
-}
-
 uint32_t arithmetic_right(uint32_t register_value, uint8_t shift_value) {
 	bool negative = register_value >> 31 && 1;
 	uint32_t result = register_value >> shift_value;
@@ -207,7 +93,7 @@ uint32_t rotate_right(uint32_t register_value, uint8_t shift_value) {
 	return shifted_value | rotated_value;
 }
 
-uint32_t shift(uint32_t offset) {
+uint32_t shift(uint32_t offset, bool set_condition) {
 	uint8_t register_m = offset & 0b1111;
 	bool variable = (offset >> 4) & 0b1;
 	uint8_t shift_type = (offset >> 5) & 0b11;
@@ -264,12 +150,12 @@ void dataProcessing(uint32_t instruction) {
 	case 0b0000: //and
 		result = ((uint32_t)Registers[register_n] & operand2);
 		Registers[register_d] = result;
-		isLogic = 1;
+		isLogic = true;
 		break;
 	case 0b0001: //eor
 		result = ((uint32_t)Registers[register_n] ^ operand2);
 		Registers[register_d] = result;
-		isLogic = 1;
+		isLogic = true;
 		break;
 	case 0b0010: //sub
 		result = ((uint32_t)Registers[register_n] - operand2);
@@ -295,7 +181,7 @@ void dataProcessing(uint32_t instruction) {
 	case 0b1100: //orr
 		result = ((uint32_t)Registers[register_n] | operand2);
 		Registers[register_d] = result;
-		isLogic = 1;
+		isLogic = true;
 		break;
 	case 0b1101: //mov
 		result = operand2;
@@ -303,13 +189,10 @@ void dataProcessing(uint32_t instruction) {
 		break;
 	}
 	
-
-
 	if (set_condition) {
 		// For C bit: if logic operation -> set to carry out from any shift operation (result from barrel shifter)
 		//            if arithmetic      -> set the the carry out from the ALU (1 for addition if there was a carry,
 		//																		0 for subtraction if there was a borrow)
-
 		if (isLogic) {
 			set_bit(Registers + CPSR_REGISTER, CPSR_C, Registers[16] & 0b1);
 		}
@@ -324,14 +207,11 @@ void dataProcessing(uint32_t instruction) {
 				set_bit(Registers + CPSR_REGISTER, CPSR_C, 0b0);
 			}
 		}
-
 		// Z = 1 if the result is all 0s
 		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0);
 		// N = logical value of 31st bit of result
 		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 1);
 	}
-
-//	printf("data processed\n");
 }
 
 void multiply(uint32_t instruction) {
