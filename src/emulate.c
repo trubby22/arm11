@@ -106,7 +106,12 @@ uint32_t shift(uint32_t offset, bool set_condition) {
 		assert(register_s != PC_REGISTER && "shift register cannot be PC_REGISTER");
 		shift_value = Registers[register_s] & 0xff;
 	}
-
+	if (set_condition && shift_value != 0) {
+		if (shift_type == 0) 
+			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> (31 - shift_value)) & 1);
+		else
+			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> shift_value) & 1);
+	}
 	switch (shift_type) {
 	case 0b00:
 		return register_value << shift_value;
@@ -146,38 +151,38 @@ void dataProcessing(uint32_t instruction) {
 
 	switch (opcode) {
 	case 0b0000: //and
-		result = ((uint32_t)Registers[register_n] & operand2);
+		result = Registers[register_n] & operand2;
 		Registers[register_d] = result;
 		isLogic = true;
 		break;
 	case 0b0001: //eor
-		result = ((uint32_t)Registers[register_n] ^ operand2);
+		result = Registers[register_n] ^ operand2;
 		Registers[register_d] = result;
 		isLogic = true;
 		break;
 	case 0b0010: //sub
-		result = ((uint32_t)Registers[register_n] - operand2);
+		result = Registers[register_n] - operand2;
 		Registers[register_d] = result;
 		break;
 	case 0b0011: //rsb
-		result = (operand2 - (uint32_t)Registers[register_n]);
+		result = operand2 - Registers[register_n];
 		Registers[register_d] = result;
 		break;
 	case 0b0100: //add
-		result = (operand2 + (uint32_t)Registers[register_n]);
+		result = operand2 + Registers[register_n];
 		Registers[register_d] = result;
 		break;
 	case 0b1000: //tst
-		result = (uint32_t)Registers[register_n] & operand2;
+		result = Registers[register_n] & operand2;
 		break;
 	case 0b1001: //teq
-		result = (uint32_t)Registers[register_n] ^ operand2;
+		result = Registers[register_n] ^ operand2;
 		break;
 	case 0b1010: //cmp
-		result = (uint32_t)Registers[register_n] - operand2;
+		result = Registers[register_n] - operand2;
 		break;
 	case 0b1100: //orr
-		result = ((uint32_t)Registers[register_n] | operand2);
+		result = Registers[register_n] | operand2;
 		Registers[register_d] = result;
 		isLogic = true;
 		break;
@@ -191,10 +196,7 @@ void dataProcessing(uint32_t instruction) {
 		// For C bit: if logic operation -> set to carry out from any shift operation (result from barrel shifter)
 		//            if arithmetic      -> set the the carry out from the ALU (1 for addition if there was a carry,
 		//																		0 for subtraction if there was a borrow)
-		if (isLogic) {
-			set_bit(Registers + CPSR_REGISTER, CPSR_C, Registers[16] & 0b1);
-		}
-		else {
+		if(!isLogic) {
 			if ((opcode == 0b0100) && (Registers[16] & 0b1)) {
 				set_bit(Registers + CPSR_REGISTER, CPSR_C, 0b1);
 			}
@@ -205,8 +207,11 @@ void dataProcessing(uint32_t instruction) {
 				set_bit(Registers + CPSR_REGISTER, CPSR_C, 0b0);
 			}
 		}
-		// Z = 1 if the result is all 0s
-		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0);
+
+		// Z = 1 if the result is all 0s 
+		if(result == 0) 
+			set_bit(Registers + CPSR_REGISTER, CPSR_Z, 1);
+
 		// N = logical value of 31st bit of result
 		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 1);
 	}
