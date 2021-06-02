@@ -141,10 +141,8 @@ void dataProcessing(uint32_t instruction) {
 		uint8_t imm = operand2 & 0xff;
 		operand2 = rotate_right(imm, rotate << 1); // Shifted 1 to the left to multiply by 2
 	}
-	else {
-		//operand2 is a shifted register
-		operand2 = shift(operand2);
-	}
+	else
+		operand2 = shift(operand2, set_condition); //operand2 is a shifted register
 
 	switch (opcode) {
 	case 0b0000: //and
@@ -246,7 +244,7 @@ void singleDataTransfer(uint32_t instruction) {
 	uint32_t memory = Registers[register_n];
 
 	if (immediate_offset) 
-		offset = shift(offset);
+		offset = shift(offset, false);
 
 	if (up) 
 		offset = Registers[register_n] + offset;
