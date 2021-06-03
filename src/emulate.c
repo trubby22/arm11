@@ -367,8 +367,8 @@ int main(int argc, char* argv[]) {
 			switch (instruction)
 			{
 			case 0b00:
-				if ((execute >> 4) == 0b1001) {
-					//printf("execute\n");
+				if (((execute >> 4) & 0b1111) == 0b1001) {
+					//printf("multiply\n");
 					multiply(execute);
 				} else {
 					//printf("DP\n");
