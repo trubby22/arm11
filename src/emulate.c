@@ -27,9 +27,10 @@
 #define CPSR_Z 30
 #define CPSR_C 29
 #define CPSR_V 28
+#define REGISTER_COUNT 17
 
 uint8_t* Ram;
-uint32_t Registers[17] = { 0 };
+uint32_t Registers[REGISTER_COUNT] = { 0 };
 
 uint32_t read_ram(uint16_t address) {
 	return *(uint32_t*)(Ram + address);
@@ -48,25 +49,25 @@ void set_bit(uint32_t* number, uint8_t bit, bool set) {
 }
 
 bool cond(uint8_t code) {
-	bool n = (Registers[CPSR_REGISTER] >> CPSR_N) & 1;
-	bool z = (Registers[CPSR_REGISTER] >> CPSR_Z) & 1;
-	bool c = (Registers[CPSR_REGISTER] >> CPSR_C) & 1;
-	bool v = (Registers[CPSR_REGISTER] >> CPSR_V) & 1;
+	bool n = (Registers[CPSR_REGISTER] >> CPSR_N) & 0x1;
+	bool z = (Registers[CPSR_REGISTER] >> CPSR_Z) & 0x1;
+	bool c = (Registers[CPSR_REGISTER] >> CPSR_C) & 0x1;
+	bool v = (Registers[CPSR_REGISTER] >> CPSR_V) & 0x1;
 
 	switch (code) {
-	case 0b0000:
+	case 0x0:
 		return z;
-	case 0b0001:
+	case 0x1:
 		return !z;
-	case 0b1010:
+	case 0xa:
 		return n == v;
-	case 0b1011:
+	case 0xb:
 		return n != v;
-	case 0b1100:
+	case 0xc:
 		return !z && (n == v);
-	case 0b1101:
+	case 0xd:
 		return z | (n != v);
-	case 0b1110:
+	case 0xe:
 		return true;
 	}
 	#ifdef __GNUC__
@@ -78,7 +79,8 @@ bool cond(uint8_t code) {
 }
 
 uint32_t arithmetic_right(uint32_t register_value, uint8_t shift_value) {
-	bool negative = register_value >> 31 && 1;
+	//
+	bool negative = register_value >> 31 & 0x1;
 	uint32_t result = register_value >> shift_value;
 
 	if (negative) {
@@ -97,35 +99,35 @@ uint32_t rotate_right(uint32_t register_value, uint8_t shift_value) {
 }
 
 uint32_t shift(uint32_t offset, bool set_condition) {
-	uint8_t register_m = offset & 0b1111;
-	bool variable = (offset >> 4) & 0b1;
-	uint8_t shift_type = (offset >> 5) & 0b11;
-	uint8_t shift_value = (offset >> 7) & 0b11111;
+	uint8_t register_m = offset & 0xf;
+	bool variable = (offset >> 4) & 0x1;
+	uint8_t shift_type = (offset >> 5) & 0x3;
+	uint8_t shift_value = (offset >> 7) & 0x1f;
 
 	uint32_t register_value = Registers[register_m];
 
 	if (variable) {
-		uint8_t register_s = (shift_value >> 1) & 0b1111;
+		uint8_t register_s = (shift_value >> 1) & 0xf;
 		assert(register_s != PC_REGISTER && "shift register cannot be PC_REGISTER");
 		shift_value = Registers[register_s] & 0xff;
 	}
 
 	if (set_condition && shift_value != 0) {
 		if (shift_type == 0) {
-			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> (31 - shift_value)) & 1);
+			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> (31 - shift_value)) & 0x1);
 		} else {
-			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> shift_value) & 1);
+			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> shift_value) & 0x1);
 		}
 	}
 
 	switch (shift_type) {
-	case 0b00:
+	case 0x0:
 		return register_value << shift_value;
-	case 0b01:
+	case 0x1:
 		return register_value >> shift_value;
-	case 0b10:
+	case 0x2:
 		return arithmetic_right(register_value, shift_value);
-	case 0b11:
+	case 0x3:
 		return rotate_right(register_value, shift_value);
 	}
 
@@ -134,11 +136,11 @@ uint32_t shift(uint32_t offset, bool set_condition) {
 
 void dataProcessing(uint32_t instruction) {
 	uint32_t operand2 = instruction & 0xfff;
-	uint8_t register_d = (instruction >> 12) & 0b1111;
-	uint8_t register_n = (instruction >> 16) & 0b1111;
-	bool set_condition = (instruction >> 20) & 1;
-	uint8_t opcode = (instruction >> 21) & 0b1111;
-	bool immediate_operand = (instruction >> 25) & 1;
+	uint8_t register_d = (instruction >> 12) & 0xf;
+	uint8_t register_n = (instruction >> 16) & 0xf;
+	bool set_condition = (instruction >> 20) & 0x1;
+	uint8_t opcode = (instruction >> 21) & 0xf;
+	bool immediate_operand = (instruction >> 25) & 0x1;
 
 	uint64_t result = 0;
 
@@ -156,45 +158,45 @@ void dataProcessing(uint32_t instruction) {
 	}
 
 	switch (opcode) {
-	case 0b0000: //and
+	case 0x0: //and
 		result = Registers[register_n] & operand2;
 		write_result = true;
 		break;
-	case 0b0001: //eor
+	case 0x1: //eor
 		result = Registers[register_n] ^ operand2;
 		write_result = true;
 		break;
-	case 0b0010: //sub
+	case 0x2: //sub
 		result = Registers[register_n] - operand2;
 		is_arithmetic = true;
 		write_result = true;
 		break;
-	case 0b0011: //rsb
+	case 0x3: //rsb
 		result = operand2 - Registers[register_n];
 		is_arithmetic = true;
 		write_result = true;
 		break;
-	case 0b0100: //add
+	case 0x4: //add
 		result = (uint64_t)operand2 + Registers[register_n];
 		is_addition = true;
 		is_arithmetic = true;
 		write_result = true;
 		break;
-	case 0b1000: //tst
+	case 0x8: //tst
 		result = Registers[register_n] & operand2;
 		break;
-	case 0b1001: //teq
+	case 0x9: //teq
 		result = Registers[register_n] ^ operand2;
 		break;
-	case 0b1010: //cmp
+	case 0xa: //cmp
 		result = Registers[register_n] - operand2;
 		is_arithmetic = true;
 		break;
-	case 0b1100: //orr
+	case 0xc: //orr
 		result = Registers[register_n] | operand2;
 		write_result = true;
 		break;
-	case 0b1101: //mov
+	case 0xd: //mov
 		result = operand2;
 		write_result = true;
 		break;
@@ -231,9 +233,9 @@ void dataProcessing(uint32_t instruction) {
 void multiply(uint32_t instruction) {
 	bool accumulate = (instruction >> 21) & 1;
 	bool set_condition = (instruction >> 20) & 1;
-	uint8_t register_d = (instruction >> 16) & 0b1111;
-	uint8_t register_n = (instruction >> 12) & 0b1111;
-	uint8_t register_s = (instruction >> 8) & 0b1111;
+	uint8_t register_d = (instruction >> 16) & 0xf;
+	uint8_t register_n = (instruction >> 12) & 0xf;
+	uint8_t register_s = (instruction >> 8) & 0xf;
 	uint8_t register_m = instruction & 0b1111;
 
 	uint32_t result = Registers[register_m] * Registers[register_s];
@@ -245,18 +247,18 @@ void multiply(uint32_t instruction) {
 	Registers[register_d] = result;
 
 	if (set_condition) {
-		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 1);
+		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 0x1);
 		set_bit(Registers + CPSR_REGISTER, CPSR_Z, result == 0);
 	}
 }
 
 void singleDataTransfer(uint32_t instruction) {
-	bool immediate_offset = (instruction >> 25) & 1;
-	bool pre_indexing = (instruction >> 24) & 1;
-	bool up = (instruction >> 23) & 1;
-	bool load = (instruction >> 20) & 1;
-	uint8_t register_n = (instruction >> 16) & 0b1111; // holds memory address
-	uint8_t register_m = (instruction >> 12) & 0b1111;  // holds value
+	bool immediate_offset = (instruction >> 25) & 0x1;
+	bool pre_indexing = (instruction >> 24) & 0x1;
+	bool up = (instruction >> 23) & 0x1;
+	bool load = (instruction >> 20) & 0x1;
+	uint8_t register_n = (instruction >> 16) & 0xf; // holds memory address
+	uint8_t register_m = (instruction >> 12) & 0xf;  // holds value
 	uint32_t offset = instruction & 0xfff;
 	uint32_t memory = Registers[register_n];
 
@@ -293,7 +295,7 @@ void singleDataTransfer(uint32_t instruction) {
 void branch(uint32_t instruction) {
 
 	uint32_t offset = (instruction & 0xffffff) << 2;
-	bool negative = (offset >> 25) & 1;
+	bool negative = (offset >> 25) & 0x1;
 	if (negative) {
 		offset = (~offset) + 1;
 		offset &= 0xffffff;
@@ -348,11 +350,11 @@ void print_state(uint16_t program_size) {
 	printf("PC  : %10d (0x%08x)\n", Registers[PC_REGISTER], Registers[PC_REGISTER]);
 	printf("CPSR: %10d (0x%08x)\n", Registers[CPSR_REGISTER], Registers[CPSR_REGISTER]);
 	printf("Non-zero memory:\n");
-	for (i = 0; i <= 65532; i += 4) {
+	for (i = 0; i <= RAM_SIZE-4; i += 4) {
 		if (read_ram(i) != 0) {
 			printf("0x%08x: 0x%08x\n", i, swap(read_ram(i))); // if you want to view numbers in regular big endian format, delete swap here
 		}
-		if (i == 65532) {
+		if (i == RAM_SIZE-4) {
 			break;
 		}
 	}
@@ -378,14 +380,14 @@ int main(int argc, char* argv[]) {
 		//printf("\n");
 		//print_state(program_size);
 		//printf("loop, instr.: 0x%x\n", execute);
-		uint8_t code = (execute >> 28) & 0b1111;
+		uint8_t code = (execute >> 28) & 0xf;
 		if (cond(code)) {
-			uint8_t instruction = (execute >> 26) & 0b11;
+			uint8_t instruction = (execute >> 26) & 0x3;
 			//printf("case: 0x%2x\n", instruction);
 			switch (instruction)
 			{
-			case 0b00:
-				if (((execute >> 4) & 0b1111) == 0b1001) {
+			case 0x0:
+				if (((execute >> 4) & 0xf) == 0x9) {
 					//printf("multiply\n");
 					multiply(execute);
 				} else {
@@ -394,12 +396,12 @@ int main(int argc, char* argv[]) {
 				}
 				break;
 
-			case 0b01:
+			case 0x1:
 				//printf("SDT\n");
 				singleDataTransfer(execute);
 				break;
 
-			case 0b10:
+			case 0x2:
 				//printf("branch\n");
 				branch_present = true;
 				branch(execute);
