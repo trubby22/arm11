@@ -217,6 +217,8 @@ void dataProcessing(uint32_t instruction) {
 		// Z = 1 if the result is all 0s 
 		if (result == 0) {
 			set_bit(Registers + CPSR_REGISTER, CPSR_Z, 1);
+		} else {
+			set_bit(Registers + CPSR_REGISTER, CPSR_Z, 0);
 		}
 		// N = logical value of 31st bit of result
 		set_bit(Registers + CPSR_REGISTER, CPSR_N, (result >> 31) & 1);
@@ -358,6 +360,7 @@ int main(int argc, char* argv[]) {
 
 	while (execute != 0) {
 		bool branch_present = false;
+		//printf("\n");
 		//print_state(program_size);
 		//printf("loop, instr.: 0x%x\n", execute);
 		uint8_t code = (execute >> 28) & 0b1111;
@@ -406,6 +409,7 @@ int main(int argc, char* argv[]) {
 	//to account for one extra fetch
 	//Registers[PC_REGISTER] -= 4; // no longer needed due to fetch_pre
 
+	//printf("\n");
 	print_state(program_size);
 
 	free(Ram);
