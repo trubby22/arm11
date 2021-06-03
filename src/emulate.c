@@ -230,8 +230,8 @@ void dataProcessing(uint32_t instruction) {
 }
 
 void multiply(uint32_t instruction) {
-	bool accumulate = (instruction >> 21) & 1;
-	bool set_condition = (instruction >> 20) & 1;
+	bool accumulate = (instruction >> 21) & 0x1;
+	bool set_condition = (instruction >> 20) & 0x1;
 	uint8_t register_d = (instruction >> 16) & 0xf;
 	uint8_t register_n = (instruction >> 12) & 0xf;
 	uint8_t register_s = (instruction >> 8) & 0xf;
