@@ -79,7 +79,6 @@ bool cond(uint8_t code) {
 }
 
 uint32_t arithmetic_right(uint32_t register_value, uint8_t shift_value) {
-	//
 	bool negative = register_value >> 31 & 0x1;
 	uint32_t result = register_value >> shift_value;
 
