@@ -128,8 +128,6 @@ uint32_t shift(uint32_t offset, bool set_condition) {
 	return 0;
 }
 
-
-
 void dataProcessing(uint32_t instruction) {
 	uint32_t operand2 = instruction & 0xfff;
 	uint8_t register_d = (instruction >> 12) & 0b1111;
@@ -210,9 +208,9 @@ void dataProcessing(uint32_t instruction) {
 		if (is_arithmetic) {
 			if (is_addition) {
 				set_bit(Registers + CPSR_REGISTER, CPSR_C, result > 0xffffffff);
-			}
-			else {
-				set_bit(Registers + CPSR_REGISTER, CPSR_C, result <= 0xffffffff);
+			} else {
+				// result >= 0 --> no borrow; result < 0 --> borrow
+				set_bit(Registers + CPSR_REGISTER, CPSR_C, result <= 0x80000000);
 			}
 		}
 
@@ -381,7 +379,7 @@ int main(int argc, char* argv[]) {
 				break;
 
 			default:
-				//printf("other\n");
+				printf("other\n");
 				break;
 			}
 		}
