@@ -301,6 +301,16 @@ uint32_t fetch() {
 	return fetched;
 }
 
+// works just as fetch but increments PC BEFORE reading memory
+
+uint32_t fetch_pre() {
+	if (Registers[PC_REGISTER] >= RAM_SIZE) return 0;
+
+	Registers[PC_REGISTER] += 4;
+	uint32_t fetched = read_ram(Registers[PC_REGISTER]);
+	return fetched;
+}
+
 // swap used to convert from big endian to little endian
 
 uint32_t swap(uint32_t num) {
@@ -344,15 +354,16 @@ int main(int argc, char* argv[]) {
 
 	uint32_t execute = fetch();
 	uint32_t decoded = fetch();
-	uint32_t fetched = fetch();
+	uint32_t fetched = read_ram(Registers[PC_REGISTER]);
 
 	while (execute != 0) {
-		//printf("loop, instr.: 0x%x\n", execute);
+		bool branch_present = false;
 		//print_state(program_size);
+		//printf("loop, instr.: 0x%x\n", execute);
 		uint8_t code = (execute >> 28) & 0b1111;
 		if (cond(code)) {
 			uint8_t instruction = (execute >> 26) & 0b11;
-
+			//printf("case: 0x%2x\n", instruction);
 			switch (instruction)
 			{
 			case 0b00:
@@ -372,24 +383,28 @@ int main(int argc, char* argv[]) {
 
 			case 0b10:
 				//printf("branch\n");
+				branch_present = true;
 				branch(execute);
-				execute = decoded;
-				decoded = fetched;
-				fetched = fetch();
 				break;
 
 			default:
-				printf("other\n");
+				//printf("other\n");
 				break;
 			}
 		}
-		execute = decoded;
-		decoded = fetched;
-		fetched = fetch();
+		if (branch_present) {
+			execute = read_ram(Registers[PC_REGISTER]);
+			decoded = fetch_pre();
+			fetched = fetch_pre();
+		} else {
+			execute = decoded;
+			decoded = fetched;
+			fetched = fetch_pre();
+		}
 	}
 
 	//to account for one extra fetch
-	Registers[PC_REGISTER] -= 4;
+	//Registers[PC_REGISTER] -= 4; // no longer needed due to fetch_pre
 
 	print_state(program_size);
 
