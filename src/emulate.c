@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "emulate.h"
 
 #define RAM_SIZE 65536
 #define PC_REGISTER 15
@@ -68,11 +69,11 @@ bool cond(uint8_t code) {
 	case 0b1110:
 		return true;
 	}
-#ifdef __GNUC__
-	#warning should be changed to false when not debugging
-#else
-#pragma	warning ("should be changed to false when not debugging")
-#endif
+	#ifdef __GNUC__
+		#warning should be changed to false when not debugging
+	#else
+	#pragma	warning ("should be changed to false when not debugging")
+	#endif
 	return true;
 }
 
@@ -80,9 +81,11 @@ uint32_t arithmetic_right(uint32_t register_value, uint8_t shift_value) {
 	bool negative = register_value >> 31 && 1;
 	uint32_t result = register_value >> shift_value;
 
-	if (negative)
-		for (uint32_t i = 0; i < shift_value; i++)
+	if (negative) {
+		for (uint32_t i = 0; i < shift_value; i++) {
 			result |= 1 << (31 - i);
+		}
+	}
 
 	return result;
 }
@@ -108,10 +111,11 @@ uint32_t shift(uint32_t offset, bool set_condition) {
 	}
 
 	if (set_condition && shift_value != 0) {
-		if (shift_type == 0)
+		if (shift_type == 0) {
 			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> (31 - shift_value)) & 1);
-		else
+		} else {
 			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> shift_value) & 1);
+		}
 	}
 
 	switch (shift_type) {
@@ -147,8 +151,7 @@ void dataProcessing(uint32_t instruction) {
 		uint8_t rotate = operand2 >> 8;
 		uint8_t imm = operand2 & 0xff;
 		operand2 = rotate_right(imm, rotate << 1); // Shifted 1 to the left to multiply by 2
-	}
-	else {
+	} else {
 		operand2 = shift(operand2, set_condition); //operand2 is a shifted register
 	}
 
@@ -235,8 +238,9 @@ void multiply(uint32_t instruction) {
 
 	uint32_t result = Registers[register_m] * Registers[register_s];
 
-	if (accumulate)
+	if (accumulate) {
 		result += Registers[register_n];
+	}
 
 	Registers[register_d] = result;
 
@@ -256,29 +260,34 @@ void singleDataTransfer(uint32_t instruction) {
 	uint32_t offset = instruction & 0xfff;
 	uint32_t memory = Registers[register_n];
 
-	if (immediate_offset)
+	if (immediate_offset) {
 		offset = shift(offset, false);
+	}
 
-	if (up)
+	if (up) {
 		offset = Registers[register_n] + offset;
-	else
+	} else {
 		offset = Registers[register_n] - offset;
+	}
 
-	if (pre_indexing)
+	if (pre_indexing) {
 		memory = offset;
+	}
 
 	if (memory < 0 || memory >= RAM_SIZE) {
 		printf("Error: Out of bounds memory access at address 0x%08x\n", memory);
 		return;
 	}
 
-	if (load)
+	if (load) {
 		Registers[register_m] = read_ram(memory);
-	else
+	} else {
 		write_ram(memory, Registers[register_m]);
+	}
 
-	if (!pre_indexing)
+	if (!pre_indexing) {
 		Registers[register_n] = offset;
+	}
 }
 
 void branch(uint32_t instruction) {
@@ -289,14 +298,15 @@ void branch(uint32_t instruction) {
 		offset = (~offset) + 1;
 		offset &= 0xffffff;
 		Registers[PC_REGISTER] -= offset;
-	}
-	else {
+	} else {
 		Registers[PC_REGISTER] += offset;
 	}
 }
 
-uint32_t fetch() {
-	if (Registers[PC_REGISTER] >= RAM_SIZE) return 0;
+uint32_t fetch(void) {
+	if (Registers[PC_REGISTER] >= RAM_SIZE) { 
+		return 0;
+	}
 
 	uint32_t fetched = read_ram(Registers[PC_REGISTER]);
 	Registers[PC_REGISTER] += 4;
@@ -305,8 +315,10 @@ uint32_t fetch() {
 
 // works just as fetch but increments PC BEFORE reading memory
 
-uint32_t fetch_pre() {
-	if (Registers[PC_REGISTER] >= RAM_SIZE) return 0;
+uint32_t fetch_pre(void) {
+	if (Registers[PC_REGISTER] >= RAM_SIZE) {
+		return 0;
+	}
 
 	Registers[PC_REGISTER] += 4;
 	uint32_t fetched = read_ram(Registers[PC_REGISTER]);
@@ -326,17 +338,20 @@ uint32_t swap(uint32_t num) {
 void print_state(uint16_t program_size) {
 	printf("Registers:\n");
 	uint16_t i;
-	for (i = 0; i <= 9; i++)
+	for (i = 0; i <= 9; i++) {
 		printf("$%d  : %10d (0x%08x)\n", i, Registers[i], Registers[i]);
-	for (i = 10; i <= 12; i++)
+	}
+	for (i = 10; i <= 12; i++) {
 		printf("$%d : %10d (0x%08x)\n", i, Registers[i], Registers[i]);
+	}
 
 	printf("PC  : %10d (0x%08x)\n", Registers[PC_REGISTER], Registers[PC_REGISTER]);
 	printf("CPSR: %10d (0x%08x)\n", Registers[CPSR_REGISTER], Registers[CPSR_REGISTER]);
 	printf("Non-zero memory:\n");
 	for (i = 0; i <= 65532; i += 4) {
-		if (read_ram(i) != 0)
+		if (read_ram(i) != 0) {
 			printf("0x%08x: 0x%08x\n", i, swap(read_ram(i))); // if you want to view numbers in regular big endian format, delete swap here
+		}
 		if (i == 65532) {
 			break;
 		}
