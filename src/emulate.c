@@ -48,10 +48,11 @@ void set_bit(uint32_t* number, uint8_t bit, bool set) {
 	*number &= ~(1 << bit);
 }
 
+// checks if flags stored in CPSR register satisfy a condition code
+
 bool cond(uint8_t code) {
 	bool n = (Registers[CPSR_REGISTER] >> CPSR_N) & 0x1;
 	bool z = (Registers[CPSR_REGISTER] >> CPSR_Z) & 0x1;
-	bool c = (Registers[CPSR_REGISTER] >> CPSR_C) & 0x1;
 	bool v = (Registers[CPSR_REGISTER] >> CPSR_V) & 0x1;
 
 	switch (code) {
@@ -70,12 +71,7 @@ bool cond(uint8_t code) {
 	case 0xe:
 		return true;
 	}
-	#ifdef __GNUC__
-		#warning should be changed to false when not debugging
-	#else
-	#pragma	warning ("should be changed to false when not debugging")
-	#endif
-	return true;
+	return false;
 }
 
 uint32_t arithmetic_right(uint32_t register_value, uint8_t shift_value) {
@@ -235,7 +231,7 @@ void multiply(uint32_t instruction) {
 	uint8_t register_d = (instruction >> 16) & 0xf;
 	uint8_t register_n = (instruction >> 12) & 0xf;
 	uint8_t register_s = (instruction >> 8) & 0xf;
-	uint8_t register_m = instruction & 0b1111;
+	uint8_t register_m = instruction & 0xf;
 
 	uint32_t result = Registers[register_m] * Registers[register_s];
 
@@ -376,38 +372,29 @@ int main(int argc, char* argv[]) {
 
 	while (execute != 0) {
 		bool branch_present = false;
-		//printf("\n");
-		//print_state(program_size);
-		//printf("loop, instr.: 0x%x\n", execute);
 		uint8_t code = (execute >> 28) & 0xf;
 		if (cond(code)) {
 			uint8_t instruction = (execute >> 26) & 0x3;
-			//printf("case: 0x%2x\n", instruction);
 			switch (instruction)
 			{
 			case 0x0:
 				if (((execute >> 4) & 0xf) == 0x9) {
-					//printf("multiply\n");
 					multiply(execute);
 				} else {
-					//printf("DP\n");
 					dataProcessing(execute);
 				}
 				break;
 
 			case 0x1:
-				//printf("SDT\n");
 				singleDataTransfer(execute);
 				break;
 
 			case 0x2:
-				//printf("branch\n");
 				branch_present = true;
 				branch(execute);
 				break;
 
 			default:
-				//printf("other\n");
 				break;
 			}
 		}
@@ -422,10 +409,6 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	//to account for one extra fetch
-	//Registers[PC_REGISTER] -= 4; // no longer needed due to fetch_pre
-
-	//printf("\n");
 	print_state(program_size);
 
 	free(Ram);
