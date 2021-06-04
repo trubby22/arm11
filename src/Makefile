@@ -1,5 +1,6 @@
 CC      = gcc
-CFLAGS  = -Wall -g -D_POSIX_SOURCE -D_BSD_SOURCE -std=c99 -Werror -pedantic
+#must define _DEFAULT_SOURCE in order to define _BSD_SOURCE
+CFLAGS  = -Wall -g -D_POSIX_SOURCE -D_BSD_SOURCE -D_DEFAULT_SOURCE -std=c99 -Werror -pedantic 
 
 .SUFFIXES: .c .o
 
