@@ -428,5 +428,6 @@ int main(int argc, char* argv[]) {
 	print_state(program_size);
 
 	free(Ram);
+	fclose(fptr);
 	return EXIT_SUCCESS;
 }
