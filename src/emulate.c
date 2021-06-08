@@ -11,6 +11,7 @@
 * Input: Requires a binary file input
 
 */
+#include "emulate.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -18,7 +19,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "emulate.h"
 
 #define RAM_SIZE 65536
 #define PC_REGISTER 15
