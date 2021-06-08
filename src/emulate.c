@@ -375,38 +375,29 @@ int main(int argc, char* argv[]) {
 
 	while (execute != 0) {
 		bool branch_present = false;
-		//printf("\n");
-		//print_state(program_size);
-		//printf("loop, instr.: 0x%x\n", execute);
 		uint8_t code = (execute >> 28) & 0b1111;
 		if (cond(code)) {
 			uint8_t instruction = (execute >> 26) & 0b11;
-			//printf("case: 0x%2x\n", instruction);
 			switch (instruction)
 			{
 			case 0b00:
 				if (((execute >> 4) & 0b1111) == 0b1001) {
-					//printf("multiply\n");
 					multiply(execute);
 				} else {
-					//printf("DP\n");
 					dataProcessing(execute);
 				}
 				break;
 
 			case 0b01:
-				//printf("SDT\n");
 				singleDataTransfer(execute);
 				break;
 
 			case 0b10:
-				//printf("branch\n");
 				branch_present = true;
 				branch(execute);
 				break;
 
 			default:
-				//printf("other\n");
 				break;
 			}
 		}
@@ -421,10 +412,6 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	//to account for one extra fetch
-	//Registers[PC_REGISTER] -= 4; // no longer needed due to fetch_pre
-
-	//printf("\n");
 	print_state(program_size);
 
 	free(Ram);
