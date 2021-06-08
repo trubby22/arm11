@@ -50,6 +50,12 @@ Symbol_table* first_pass(FILE* fp) {
 
 void second_pass(FILE* fp, Symbol_table* table) {
     // write binary to file
+	// For each instruction:
+	// 	1. Map it exactly to one 32-bit word.
+	// 	2. Read in its opcode mnemonic and operand field(s).
+	// 	3. Generate the corresponding binary encoding.
+	//	4. Write the binary encoding to the binary file.
+	// useful: size_t fwrite()
 }
 
 void two_pass_assembly(FILE* fp, FILE* fp_2) {
