@@ -17,13 +17,7 @@ typedef struct Symbol_table {
 	//function* functions[];
 } Symbol_table;
 
-// an attempt at function pointers - probably should look different
-//(function*)func_from_opcode(uint32_t opcode) {
-	//return (function*)ptr;
-//}
-
 // swap used to convert from big endian to little endian
-
 uint32_t swap(uint32_t num) {
 	uint32_t swapped = ((num >> 24) & 0xff) | // move byte 3 to byte 0
 		((num << 8) & 0xff0000) | // move byte 1 to byte 2
@@ -33,7 +27,7 @@ uint32_t swap(uint32_t num) {
 }
 
 // splits line into label, opcode, operands and operand count
-// returns true when a label, false otherwise
+// returns true when it is a label, false otherwise
 bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_t* num_operands) {
 	char* token = (char*) malloc(MAX_LINE_SIZE * sizeof(char));
 	if (!token) {
@@ -100,9 +94,68 @@ uint32_t get_operand_value(char* operand) {
 	}
 }
 
-// returns relevant binary instruction
-uint32_t dataProcessing(char* label, int* opcode, uint32_t** operands, uint32_t operand_count) {
+//structs for opcode
+//TODO: move to top where it should be
+
+struct entry {
+	char* str;
+	int n;
+};
+
+struct entry opcode[] = {
+	"and", 0,
+	"eor", 1,
+	"sub", 2,
+	"rsb", 3,
+	"add", 4,
+	"orr", 5,
+	"mov", 6,
+	"tst", 7,
+	"teq", 8,
+	"cmp", 9
+};
+
+int string_to_opcode(char* key)
+{
+	int i = 0;
+	char* name = opcode[i].str;
+	while (name) {
+		if (strcmp(name, key) == 0)
+			return opcode[i].n;
+		name = opcode[++i].str;
+	}
 	return 0;
+}
+
+uint32_t data_processing(char* mnemonic, char** operands) {
+	uint8_t opcode = string_to_opcode(mnemonic);
+	uint8_t register_d = 0;
+	uint8_t register_n = 0;
+	uint16_t operand = 0;
+
+	uint32_t result = 0;
+
+	if (opcode <= 5) {
+		register_d = get_operand_value(operands[0]);
+		register_n = get_operand_value(operands[1]);
+		operand = get_operand_value(operands[2]);
+	}
+	else if (opcode == 6) {
+		register_d = get_operand_value(operands[0]);
+		operand = get_operand_value(operands[1]);
+	}
+	else if (opcode >= 7) {
+		result |= 1 << 20;
+		register_n = get_operand_value(operands[0]);
+		operand = get_operand_value(operands[1]);
+	}
+
+	result |= opcode << 21;
+	result |= register_n << 16;
+	result |= register_d << 12;
+	result |= operand;
+
+	return result;
 }
 
 uint32_t multiply(char* mnemonic, char** operands) {
