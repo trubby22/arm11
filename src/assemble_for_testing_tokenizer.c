@@ -26,6 +26,16 @@ typedef struct Symbol_table {
 	//return (function*)ptr;
 //}
 
+// swap used to convert from big endian to little endian
+
+uint32_t swap(uint32_t num) {
+	uint32_t swapped = ((num >> 24) & 0xff) | // move byte 3 to byte 0
+		((num << 8) & 0xff0000) | // move byte 1 to byte 2
+		((num >> 8) & 0xff00) | // move byte 2 to byte 1
+		((num << 24) & 0xff000000); // byte 0 to byte 3
+	return swapped;
+}
+
 // splits line into label, opcode, operands and operand count
 // returns true when a label, false otherwise
 bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_t* num_operands) {
@@ -97,8 +107,28 @@ uint32_t get_operand_value(char* operand) {
 	}
 }
 
-uint32_t multiply(char* mnemonic, char** operands, uint32_t operand_count) {
-	return 0;
+uint32_t multiply(char* mnemonic, char** operands) {
+
+	uint32_t rd = get_operand_value(operands[0]);
+	uint32_t rm = get_operand_value(operands[1]);
+	uint32_t rs = get_operand_value(operands[2]);
+	uint32_t rn;
+	uint32_t result = 0;
+	// sets cond field
+	result = result | 0xe0000000;
+	result = result | (rd << 16);
+	result = result | (rs << 8);
+	result = result | rm;
+	result = result | (0x9 << 4);
+
+	if (strcmp(mnemonic, "mla") == 0) {
+		// sets bit A
+		result = result | 0x00200000;	
+		rn = get_operand_value(operands[3]);
+		result = result | (rn << 12);
+	}
+
+	return result;
 }
 
 uint32_t singleDataTransfer(char* label, int* opcode, uint32_t** operands, uint32_t operand_count) {
@@ -125,7 +155,7 @@ void two_pass_assembly(FILE* fp, FILE* fp_2) {
 }
 
 int main(int argc, char** argv) {
-	char str[80] = "mov r3,#0x100";
+	char str[80] = "mul r2,r1,r0";
 	char* ptr = str;
 	char* label = (char*) malloc(MAX_LINE_SIZE * sizeof(char));
 	if (!label) {
@@ -153,22 +183,6 @@ int main(int argc, char** argv) {
 	uint32_t num_operands = 0;
 	bool label_present = tokenizer(ptr, label, mnemonic, operands, &num_operands);
 
-/*
-	printf("test\n");
-	num_operands = 2;
-	char hello[] = "hello";
-	char world[] = "world";
-	char* hello_2 = &(hello[0]);
-	char* world_2 = &(world[0]);
-	memcpy(operands[0], hello_2, 6);
-	for (int i = 0; i < 6; i++) {
-		operands[0][i] = hello[i];
-	}
-	printf("test 2\n");
-	
-	memcpy(operands[1], world_2, 6);
-	printf("test 3\n");
-*/
 	if (label_present) {
 		printf("label after function check: %s\n", label);
 	} else {
@@ -185,6 +199,9 @@ int main(int argc, char** argv) {
 			printf("\n");
 		}
 	}
+
+	printf("assembly instr.: %s\n", str);
+	printf("binary instr.: 0x%8x\n", swap(multiply(mnemonic, operands)));
 
 	free(label);
 	free(mnemonic);
