@@ -128,7 +128,7 @@ int string_to_opcode(char* key)
 }
 
 uint32_t data_processing(char* mnemonic, char** operands) {
-	enum Opcode opcode = string_to_opcode(mnemonic);
+	uint8_t opcode = string_to_opcode(mnemonic);
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
 	uint16_t operand = 0;
