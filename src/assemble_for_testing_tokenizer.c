@@ -203,16 +203,43 @@ int main(int argc, char** argv) {
 	printf("assembly instr.: %s\n", str);
 	printf("binary instr.: 0x%8x\n", swap(multiply(mnemonic, operands)));
 
+	
+	assert(argc == 3 && "Enter two arguments");
+
+	FILE* fptr = fopen(argv[1], "r"); // "r" - read
+	assert(fptr != NULL && "Could not open file");
+
+	char* line = (char*) malloc(MAX_LINE_SIZE * sizeof(char));
+	if (!line) {
+		printf("Error!\n");
+	}	
+
+	while (fgets(line, MAX_LINE_SIZE, fptr)) {
+		printf("%s", line);
+		label_present = tokenizer(line, label, mnemonic, operands, &num_operands);
+		if (label_present) {
+			printf("label after function check: %s\n", label);
+		} else {
+			printf("mnemonic after function check: %s\n", mnemonic);
+			printf("num_operands: %d\n", num_operands);
+			for (int i = 0; i < num_operands; i++) {
+				printf("operands[%d]: %s", i, operands[i]);
+				if (is_register(operands[i])) {
+					printf(" is a register");
+				} else {
+					printf(" isn't a register");
+				}
+				printf(" with value %u", get_operand_value(operands[i]));
+				printf("\n");
+			}
+		}	
+	}
+
 	free(label);
 	free(mnemonic);
 	free(operands[0]);
 	free(operands);
 
-/*
-	assert(argc == 3 && "Enter two arguments");
-
-	FILE* fptr = fopen(argv[1], "r"); // "r" - read
-	assert(fptr != NULL && "Could not open file");
 
 	FILE* fptr_2 = fopen(argv[2], "w"); // "w" - write
 	assert(fptr != NULL && "Could not open file");
@@ -221,7 +248,7 @@ int main(int argc, char** argv) {
 
 	fclose(fptr);
 	fclose(fptr_2);
-*/
+
 	return EXIT_SUCCESS;
 }
 
