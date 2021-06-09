@@ -112,7 +112,14 @@ struct entry opcode[] = {
 	"mov", 6,
 	"tst", 7,
 	"teq", 8,
-	"cmp", 9
+	"cmp", 9,
+	"beq", 10,
+	"bne", 11,
+	"bge", 12,
+	"blt", 13,
+	"bgt", 14,
+	"ble", 15,
+	"bal", 16,
 };
 
 int string_to_opcode(char* key)
@@ -186,8 +193,34 @@ uint32_t singleDataTransfer(char* label, int* opcode, uint32_t** operands, uint3
 	return 0;
 }
 
-uint32_t branch(char* label, int* opcode, uint32_t** operands, uint32_t operand_count) {
-	return 0;
+bool is_label(const char* line) {
+    return line[strlen(line) - 1] == ':';
+}
+
+
+uint32_t branch(const char* mnemonic, char* expression) {
+	uint32_t opcode, result;
+	int32_t offset;
+
+	int opcode = strlen(mnemonic) == 1 ? 0xe : string_to_opcode(mnemonic) % 10;
+	if (opcode > 1) {
+		opcode |= 1U << 3;
+	}
+	const uint32_t unchanged_bits = 0xa << 24;
+
+	// if the expression is a label:
+	// 	get the associated memory address
+	// else:
+	// 	use target address given in the expression
+	// 
+	// Compute offset between the current address and the label/target address
+	// Shift offset right two bits
+	offset &= 0x20;
+	offset >= 2;
+	offset &= 0x18;
+	
+	result = (opcode << 28) | unchanged_bits | offset;
+	return result;
 }
 
 Symbol_table* first_pass(FILE* fp) {
