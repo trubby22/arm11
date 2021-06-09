@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#define MAX_LINE_SIZE 511
+
 // maps labels to memory addresses and expected operand count
 // could use function pointers with the Symbol_table
 typedef struct Symbol_table {
@@ -21,9 +23,51 @@ typedef struct Symbol_table {
 //}
 
 // splits line into label, opcode, operands and operand count
-void tokenizer(char* line, char* label, int* opcode, uint32_t** operands, uint32_t* operand_count) {
-	// strtok_r();
-	// strtol();
+// returns true when a label, false otherwise
+bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_t* num_operands) {
+	char* token = (char*) malloc(MAX_LINE_SIZE * sizeof(char));
+	if (!token) {
+		printf("Error!\n");
+	}
+	char str[MAX_LINE_SIZE];
+	for (int i = 0; i < MAX_LINE_SIZE; i++) {
+		str[i] = *line;
+		line += sizeof(char);
+	}
+	//printf("str check: %s\n", str);
+   
+	token = strtok(str, ":");
+	//printf("token check: %s\n", token);
+	//printf("strcmp: %d\n", strcmp(str, token));
+
+	// strings are different
+	if (strcmp(str, token) != 0) {
+		// we get a label
+		memcpy(label, token, MAX_LINE_SIZE);
+		return true;
+	}
+
+	token = strtok(str, " ");
+
+	//printf("%s\n", token);
+	// we get a mnemonic
+	memcpy(mnemonic, token, MAX_LINE_SIZE);
+
+	memcpy(str, token, MAX_LINE_SIZE);
+	int n = 0;
+	token = strtok(NULL, ",");
+
+	while (token != NULL) {
+		//printf("1st loop check: %s\n", token);
+		memcpy(operands[n], token, MAX_LINE_SIZE * sizeof(char));
+		token = strtok(NULL, ",");
+		n++;
+	}
+
+	*num_operands = n;
+
+	free(token);
+	return false;
 }
 
 // returns relevant binary instruction
@@ -46,6 +90,7 @@ uint32_t branch(char* label, int* opcode, uint32_t** operands, uint32_t operand_
 Symbol_table* first_pass(FILE* fp) {
 	//fill in symbol table
 	//return (Symbol_table*)table;
+	return NULL;
 }
 
 void second_pass(FILE* fp, Symbol_table* table) {
