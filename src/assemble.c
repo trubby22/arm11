@@ -70,6 +70,26 @@ bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_
 	return false;
 }
 
+// is_register and get_operand_value are useful in the 4 instruction functions: DP, SDT, multiply, branch
+
+bool is_register(char* operand) {
+	if (operand[0] == 'r') {
+		return true;
+	}
+	return false;
+}
+
+// takes operand string and returns either decimal register number or decimal immediate value
+uint32_t get_operand_value(char* operand) {
+	if (is_register(operand)) {
+		operand += sizeof(char);
+		return strtol(operand, NULL, 10);
+	} else {
+		operand += 3 * sizeof(char);
+		return strtol(operand, NULL, 16);
+	}
+}
+
 // returns relevant binary instruction
 uint32_t dataProcessing(char* label, int* opcode, uint32_t** operands, uint32_t operand_count) {
 	return 0;
