@@ -22,6 +22,16 @@ typedef struct Symbol_table {
 	//return (function*)ptr;
 //}
 
+// swap used to convert from big endian to little endian
+
+uint32_t swap(uint32_t num) {
+	uint32_t swapped = ((num >> 24) & 0xff) | // move byte 3 to byte 0
+		((num << 8) & 0xff0000) | // move byte 1 to byte 2
+		((num >> 8) & 0xff00) | // move byte 2 to byte 1
+		((num << 24) & 0xff000000); // byte 0 to byte 3
+	return swapped;
+}
+
 // splits line into label, opcode, operands and operand count
 // returns true when a label, false otherwise
 bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_t* num_operands) {
@@ -95,8 +105,28 @@ uint32_t dataProcessing(char* label, int* opcode, uint32_t** operands, uint32_t 
 	return 0;
 }
 
-uint32_t multiply(char* label, int* opcode, uint32_t** operands, uint32_t operand_count) {
-	return 0;
+uint32_t multiply(char* mnemonic, char** operands) {
+
+	uint32_t rd = get_operand_value(operands[0]);
+	uint32_t rm = get_operand_value(operands[1]);
+	uint32_t rs = get_operand_value(operands[2]);
+	uint32_t rn;
+	uint32_t result = 0;
+	// sets cond field
+	result = result | 0xe0000000;
+	result = result | (rd << 16);
+	result = result | (rs << 8);
+	result = result | rm;
+	result = result | (0x9 << 4);
+
+	if (strcmp(mnemonic, "mla") == 0) {
+		// sets bit A
+		result = result | 0x00200000;	
+		rn = get_operand_value(operands[3]);
+		result = result | (rn << 12);
+	}
+
+	return result;
 }
 
 uint32_t singleDataTransfer(char* label, int* opcode, uint32_t** operands, uint32_t operand_count) {
