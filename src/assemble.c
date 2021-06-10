@@ -164,7 +164,7 @@ struct entry opcode[] = {
 	{"blt", 13},
 	{"bgt", 14},
 	{"ble", 15},
-	{"bal", 16}, // should it not be "b"?
+	{"bal", 16} // should it not be "b"?
 };
 
 int string_to_opcode(char* key)
@@ -254,9 +254,9 @@ uint32_t branch(char* mnemonic, uint32_t current_address, uint32_t target_addres
 	}
 
 	offset = target_address - current_address - 8;
-	offset &= 0x1a; // make offset 26 bits in length
+	offset &= 0x3ffffff; // make offset 26 bits in length
 	offset >>= 2;
-	offset &= 0x18; // store the lower 24 bits
+	offset &= 0xffffff; // store the lower 24 bits
 	
 	result = (opcode << 28) | unchanged_bits | offset;
 	return result;
