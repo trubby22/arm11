@@ -9,13 +9,41 @@
 
 // maps labels to memory addresses and expected operand count
 // could use function pointers with the Symbol_table
-typedef struct Symbol_table {
+typedef struct Symbol {
+	char *label;
+	uint32_t memory_address;
+} Symbol;
+
+int compare(const void *s1, const void *s2)
+{
+     const struct Symbol *e1 = s1;
+     const struct Symbol *e2 = s2;
+
+     return strcmp(e1->label, e2->label);
+}
+
+typedef struct {
 	uint32_t* addresses;
 	uint32_t* operand_count;
 	char** labels;
-	//char* opcodes[];
-	//function* functions[];
+	// char* opcodes[];
+	// function* functions[];
+
 } Symbol_table;
+
+// struct Symbol Symbol_table[] = {};
+
+// void initializeSymbolTable(struct table table) {
+
+// 	int i = 0;
+// 	while (*labels != NULL) {
+// 		Symbol[i].memory_address[i] = addresses;
+// 		Symbol[i].*label[i] = *labels;
+// 		i++;
+// 		labels++;
+// 	}
+
+// }
 
 // swap used to convert from big endian to little endian
 uint32_t swap(uint32_t num) {
