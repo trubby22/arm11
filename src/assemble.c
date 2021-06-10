@@ -164,7 +164,8 @@ struct entry opcode[] = {
 	{"blt", 13},
 	{"bgt", 14},
 	{"ble", 15},
-	{"bal", 16} // should it not be "b"?
+	{"bal", 16},
+    {"b",   17}
 };
 
 int string_to_opcode(char* key)
@@ -241,7 +242,7 @@ uint32_t singleDataTransfer(char* label, int* opcode, uint32_t** operands, uint3
 
 // the target address passed in to this function is either a specific 32-bit 
 // address or a label.
-uint32_t branch(char* mnemonic, uint32_t current_address, uint32_t target_address) {
+uint32_t branch(char* mnemonic, const int current_address, const int target_address) {
 	uint32_t opcode, result;
 	int32_t offset;
 	const uint32_t unchanged_bits = 0xa << 24;
