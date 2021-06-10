@@ -154,7 +154,7 @@ struct entry opcode[] = {
 	{"blt", 13},
 	{"bgt", 14},
 	{"ble", 15},
-	{"bal", 16},
+	{"bal", 16}, // should it not be "b"?
 };
 
 int string_to_opcode(char* key)
@@ -250,6 +250,18 @@ uint32_t branch(char* mnemonic, uint32_t current_address, uint32_t target_addres
 	
 	result = (opcode << 28) | unchanged_bits | offset;
 	return result;
+}
+
+uint32_t andeq(void) {
+	return 0;	
+}
+
+uint32_t special_lsl(char* mnemonic, char** operands) {
+	char* num = operands[1];
+	operands[1] = operands[0];
+	operands[2] = mnemonic;
+	operands[3] = num;
+	return data_processing(mnemonic, operands);
 }
 
 Symbol_table* first_pass(FILE* fp) {
