@@ -103,23 +103,23 @@ struct entry {
 };
 
 struct entry opcode[] = {
-	"and", 0,
-	"eor", 1,
-	"sub", 2,
-	"rsb", 3,
-	"add", 4,
-	"orr", 5,
-	"mov", 6,
-	"tst", 7,
-	"teq", 8,
-	"cmp", 9,
-	"beq", 10,
-	"bne", 11,
-	"bge", 12,
-	"blt", 13,
-	"bgt", 14,
-	"ble", 15,
-	"bal", 16,
+	{"and", 0},
+	{"eor", 1},
+	{"sub", 2},
+	{"rsb", 3},
+	{"add", 4},
+	{"orr", 5},
+	{"mov", 6},
+	{"tst", 7},
+	{"teq", 8},
+	{"cmp", 9},
+	{"beq", 10},
+	{"bne", 11},
+	{"bge", 12},
+	{"blt", 13},
+	{"bgt", 14},
+	{"ble", 15},
+	{"bal", 16},
 };
 
 int string_to_opcode(char* key)
@@ -193,31 +193,25 @@ uint32_t singleDataTransfer(char* label, int* opcode, uint32_t** operands, uint3
 	return 0;
 }
 
-bool is_label(const char* line) {
-    return line[strlen(line) - 1] == ':';
-}
 
-
-uint32_t branch(const char* mnemonic, char* expression) {
+// the target address passed in to this function is either a specific 32-bit 
+// address or a label.
+uint32_t branch(char* mnemonic, uint32_t current_address, uint32_t target_address) {
 	uint32_t opcode, result;
 	int32_t offset;
-
-	int opcode = strlen(mnemonic) == 1 ? 0xe : string_to_opcode(mnemonic) % 10;
-	if (opcode > 1) {
-		opcode |= 1U << 3;
-	}
 	const uint32_t unchanged_bits = 0xa << 24;
 
-	// if the expression is a label:
-	// 	get the associated memory address
-	// else:
-	// 	use target address given in the expression
-	// 
-	// Compute offset between the current address and the label/target address
-	// Shift offset right two bits
-	offset &= 0x20;
-	offset >= 2;
-	offset &= 0x18;
+	// opcode = b if mnemonic length is 1 
+	opcode = strlen(mnemonic) == 1 ? 0xe : string_to_opcode(mnemonic) % 10;
+	if (opcode > 1) {
+		// opcode = bge, blt, bgt, ble, OR bal
+		opcode |= 0x8;
+	}
+
+	offset = target_address - current_address - 8;
+	offset &= 0x1a; // make offset 26 bits in length
+	offset >>= 2;
+	offset &= 0x18; // store the lower 24 bits
 	
 	result = (opcode << 28) | unchanged_bits | offset;
 	return result;
