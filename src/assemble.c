@@ -113,13 +113,20 @@ bool is_register(char* operand) {
 
 // takes operand string and returns either decimal register number or decimal immediate value
 uint32_t get_operand_value(char* operand) {
+	// register
 	if (is_register(operand)) {
 		operand += sizeof(char);
 		return strtol(operand, NULL, 10);
-	} else {
-		operand += 3 * sizeof(char);
+	}
+	operand += 2 * sizeof(char);
+	// hex immediate
+	if (*operand == 'x') {
+		operand += sizeof(char);
 		return strtol(operand, NULL, 16);
 	}
+	// decimal immediate
+	operand -= sizeof(char);
+	return strtol(operand, NULL, 10);
 }
 
 //structs for opcode
@@ -266,7 +273,63 @@ void two_pass_assembly(FILE* fp, FILE* fp_2) {
 	second_pass(fp_2, table);
 }
 
+// we assert the string ends with a \n
+void remove_newline(char* str) {
+	int i;
+	for (i = 0; str[i] != '\n'; i++) {		
+
+	}
+	str[i] = '\0';
+}
+
+char* alloc_label (void) {
+	char* label = (char*) malloc(MAX_LINE_SIZE * sizeof(char));
+	if (!label) {
+		printf("Error!\n");
+	}
+	return label;
+}
+
+char* alloc_mnemonic (void) {
+	char* mnemonic = (char*) malloc(MAX_LINE_SIZE * sizeof(char));
+	if (!mnemonic) {
+		printf("Error!\n");
+	}
+	return mnemonic;
+}
+
+char** alloc_operands (void) {
+	char** operands = (char**) malloc(MAX_LINE_SIZE * sizeof(char*));
+	if (!operands) {
+		printf("Error!\n");
+	}
+	operands[0] = (char*) malloc(MAX_LINE_SIZE * MAX_LINE_SIZE * sizeof(char));
+	if (!operands[0]) {
+		free(operands);
+		printf("Error!\n");
+	}
+	for (int i = 1; i < MAX_LINE_SIZE; i++) {
+		operands[i] = operands[i - 1] + MAX_LINE_SIZE;
+	}
+	return operands;
+}
+
+char* alloc_line (void) {
+	char* line = (char*) malloc(MAX_LINE_SIZE * sizeof(char));
+	if (!line) {
+		printf("Error!\n");
+	}
+	return line;
+}
+
 int main(int argc, char** argv) {
+	char* label = alloc_label();
+	char* mnemonic = alloc_mnemonic();
+	char** operands = alloc_operands();
+	char* line = alloc_line();
+	uint32_t num_operands = 0;
+	bool label_present = false;	
+
 	assert(argc == 3 && "Enter two arguments");
 
 	FILE* fptr = fopen(argv[1], "r"); // "r" - read
@@ -275,10 +338,40 @@ int main(int argc, char** argv) {
 	FILE* fptr_2 = fopen(argv[2], "w"); // "w" - write
 	assert(fptr != NULL && "Could not open file");
 
-	two_pass_assembly(fptr, fptr_2);
+	two_pass_assembly(fptr, fptr_2);		
+
+	while (fgets(line, MAX_LINE_SIZE, fptr)) {
+		remove_newline(line);
+		printf("%s\n", line);
+		label_present = tokenizer(line, label, mnemonic, operands, &num_operands);
+		if (label_present) {
+			printf("label after function check: %s\n", label);
+		} else {
+			printf("mnemonic after function check: %s\n", mnemonic);
+			printf("num_operands: %d\n", num_operands);
+			for (int i = 0; i < num_operands; i++) {
+				printf("operands[%d]: %s", i, operands[i]);
+				if (is_register(operands[i])) {
+					printf(" is a register");
+				} else {
+					printf(" isn't a register");
+				}
+				printf(" with value %u", get_operand_value(operands[i]));
+				printf("\n");
+			}
+		}	
+		if (!label_present && (strcmp(mnemonic, "mul") == 0 || strcmp(mnemonic, "mla") == 0)) {
+			printf("binary instr.: 0x%8x\n", swap(multiply(mnemonic, operands)));
+		}
+	}
+
+	free(label);
+	free(mnemonic);
+	free(operands[0]);
+	free(operands);
 
 	fclose(fptr);
 	fclose(fptr_2);
-	return EXIT_SUCCESS;
-}
+
+	return EXIT_SUCCESS;}
 
