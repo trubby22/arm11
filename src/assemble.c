@@ -111,6 +111,51 @@ bool is_register(char* operand) {
 	return false;
 }
 
+bool has_equals(char* operand) {
+	return (*operand == '=');
+}
+
+bool has_sq_brackets(char* operand) {
+	return (*operand == '[');
+}
+
+bool has_hashtag(char* operand) {
+	return (*operand == '#');
+}
+
+char* remove_equals(char* operand) {
+	if (has_equals(operand)) {
+		operand += sizeof(char);
+	}
+	return operand;
+}
+
+char* remove_sq_brackets(char* operand) {
+	if (has_sq_brackets(operand)) {
+		operand += sizeof(char);
+		int i;
+		for (i = 0; operand[i] != ']'; i++) {
+			
+		}
+		operand[i] = '\0';
+	}
+	return operand;
+}
+
+char* remove_hashtag(char* operand) {
+	if (has_hashtag(operand)) {
+		operand += sizeof(char);
+	}
+	return operand;
+}
+
+char* remove_special_chars(char* operand) {
+	operand = remove_equals(operand);
+	operand = remove_sq_brackets(operand);
+	operand = remove_hashtag(operand);
+	return operand;
+}
+
 // takes operand string and returns either decimal register number or decimal immediate value
 uint32_t get_operand_value(char* operand) {
 	// register
@@ -118,7 +163,7 @@ uint32_t get_operand_value(char* operand) {
 		operand += sizeof(char);
 		return strtol(operand, NULL, 10);
 	}
-	operand += 2 * sizeof(char);
+	operand += sizeof(char);
 	// hex immediate
 	if (*operand == 'x') {
 		operand += sizeof(char);
@@ -363,6 +408,7 @@ int main(int argc, char** argv) {
 			printf("num_operands: %d\n", num_operands);
 			for (int i = 0; i < num_operands; i++) {
 				printf("operands[%d]: %s", i, operands[i]);
+				operands[i] = remove_special_chars(operands[i]);
 				if (is_register(operands[i])) {
 					printf(" is a register");
 				} else {
@@ -376,7 +422,7 @@ int main(int argc, char** argv) {
 			printf("binary instr.: 0x%8x\n", swap(multiply(mnemonic, operands)));
 		}
 	}
-
+	
 	free(label);
 	free(mnemonic);
 	free(operands[0]);
@@ -385,5 +431,5 @@ int main(int argc, char** argv) {
 	fclose(fptr);
 	fclose(fptr_2);
 
-	return EXIT_SUCCESS;}
-
+	return EXIT_SUCCESS;
+}
