@@ -444,8 +444,11 @@ int main(int argc, char** argv) {
 	//two_pass_assembly(fptr, fptr_2);		
 
 	while (fgets(line, MAX_LINE_SIZE, fptr)) {
+		if (*line == '\n') {
+			break;
+		}
 		remove_newline(line);
-		//printf("%s\n", line);
+		//printf("<<%s>>\n", line);
 		label_present = tokenizer(line, label, mnemonic, operands, &num_operands);
 		if (label_present) {
 			strcpy(labels[i], label);
@@ -488,6 +491,9 @@ int main(int argc, char** argv) {
 	int target_address;
 	uint32_t instruction;
 	while (fgets(line, MAX_LINE_SIZE, second_pass_fptr)) {
+		if (*line == '\n') {
+			break;
+		}
 		remove_newline(line);
 		label_present = tokenizer(line, label, mnemonic, operands, &num_operands);
 		if (label_present) {
