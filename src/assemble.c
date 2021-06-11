@@ -224,6 +224,19 @@ int string_to_opcode_dp(char* key)
 	return 0;
 }
 
+/*
+char* remove_special_chars(char* operand) {
+	char copy[MAX_LINE_SIZE];
+	char* ptr = &(copy[0]);
+	strcpy(ptr, operand);
+	ptr = remove_whitespace(ptr);
+	ptr = remove_equals(ptr);
+	ptr = remove_sq_brackets(ptr);
+	ptr = remove_hashtag(ptr);
+	return ptr;
+}
+*/
+
 uint32_t data_processing(char* mnemonic, char** operands) {
 	uint8_t opcode = string_to_opcode(mnemonic) - 10;
 	uint8_t register_d = 0;
@@ -231,34 +244,39 @@ uint32_t data_processing(char* mnemonic, char** operands) {
 	uint32_t operand = 0;
 
 	uint32_t result = 0;
-
+	char original[MAX_LINE_SIZE] = { '\0' };
+	char* org_operand2 = &(original[0]);
+		
 	if (opcode <= 5) {
 		register_d = get_operand_value(operands[0]);
 		register_n = get_operand_value(operands[1]);
+		memcpy(org_operand2, operands[2], MAX_LINE_SIZE);
 		operand = get_operand_value(operands[2]);
 	}
 	else if (opcode == 6) {
 		register_d = get_operand_value(operands[0]);
+		memcpy(org_operand2, operands[1], MAX_LINE_SIZE);
 		operand = get_operand_value(operands[1]);		
-		printf("operand is: %u\n", operand);
-		printf("get_operand_value(operands[1]): %d\n", get_operand_value(operands[1]));
-		printf("operands[1]: %s\n", operands[1]);
 	}
 	else if (opcode >= 7) {
 		result |= 1 << 20;
 		register_n = get_operand_value(operands[0]);
+		memcpy(org_operand2, operands[1], MAX_LINE_SIZE);
 		operand = get_operand_value(operands[1]);
 	}
-
-	if (opcode >= 6 && has_hashtag(operands[1])) {
+	
+	org_operand2 = remove_whitespace(org_operand2);
+	org_operand2 = remove_equals(org_operand2);
+	
+	if (opcode >= 6 && has_hashtag(org_operand2)) {
 		result = result | 0x02000000; // operand2 is an immediate value
 	}
 
-	if (opcode < 6 && has_hashtag(operands[2])) {
+	if (opcode < 6 && has_hashtag(org_operand2)) {
 		result = result | 0x02000000; // operand2 is an immediate value
 	}
-
-	printf("opcode is: 0x%1x\n", string_to_opcode_dp(mnemonic));
+	
+	//printf("opcode is: 0x%1x\n", string_to_opcode_dp(mnemonic));
 
 	result |= string_to_opcode_dp(mnemonic) << 21; // gets the actual opcode
 	result |= register_n << 16;
@@ -432,19 +450,19 @@ int main(int argc, char** argv) {
 		if (label_present) {
 			strcpy(labels[i], label);
 			memory_addresses[i] = mem;
-			printf("label after function check: %s is referring to line: %d\n", label, memory_addresses[i]);
+			//printf("label after function check: %s is referring to line: %d\n", label, memory_addresses[i]);
 			i++;
 		} else {
 			//printf("mnemonic after function check: %s\n", mnemonic);
-			printf("num_operands: %d\n", num_operands);
+			//printf("num_operands: %d\n", num_operands);
 			for (int i = 0; i < num_operands; i++) {
-				printf("operands[%d]: %s\n", i, operands[i]);
+				//printf("operands[%d]: %s\n", i, operands[i]);
 				operands[i] = remove_special_chars(operands[i]);
-				printf("operands[%d]: %s\n", i, operands[i]);
+				//printf("operands[%d]: %s\n", i, operands[i]);
 				if (is_register(operands[i])) {
-					//printf(" is a register");
+					//printf(" is a register\n");
 				} else {
-					//printf(" isn't a register");
+					//printf(" isn't a register\n");
 				}
 				//printf(" with value %u", get_operand_value(operands[i]));
 				//printf("\n");
@@ -452,7 +470,7 @@ int main(int argc, char** argv) {
 			mem++;
 		}	
 		if (!label_present && (strcmp(mnemonic, "mul") == 0 || strcmp(mnemonic, "mla") == 0)) {
-			printf("binary instr.: 0x%8x\n", swap(multiply(mnemonic, operands)));
+			//printf("binary instr.: 0x%8x\n", swap(multiply(mnemonic, operands)));
 		}
 	}
 
