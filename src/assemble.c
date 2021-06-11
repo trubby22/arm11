@@ -363,9 +363,12 @@ int main(int argc, char** argv) {
 	FILE* fptr = fopen(argv[1], "r"); // "r" - read
 	assert(fptr != NULL && "Could not open file");
 
-	FILE* fptr_2 = fopen(argv[2], "ab"); // "w" - write
+	FILE* fptr_2 = fopen(argv[2], "w"); // "w" - write
 	assert(fptr != NULL && "Could not open file");
 
+	fclose(fptr_2);
+	fptr_2 = fopen(argv[2], "ab"); // "ab" - append binary
+	
 	//two_pass_assembly(fptr, fptr_2);		
 
 	while (fgets(line, MAX_LINE_SIZE, fptr)) {
