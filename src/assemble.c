@@ -228,7 +228,7 @@ uint32_t data_processing(char* mnemonic, char** operands) {
 	uint8_t opcode = string_to_opcode(mnemonic) - 10;
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
-	uint16_t operand = 0;
+	uint32_t operand = 0;
 
 	uint32_t result = 0;
 
@@ -319,7 +319,8 @@ uint32_t branch(char* mnemonic, const int current_address, const int target_addr
 	offset >>= 2;
 	offset &= 0xffffff; // store the lower 24 bits
 	
-	result = (opcode << 28) | unchanged_bits | offset;
+	result = (0xe << 28) | unchanged_bits | offset;
+	//result = result & ~(0x10000000); // changes cond from 1111 to 1110
 	return result;
 }
 
@@ -451,7 +452,7 @@ int main(int argc, char** argv) {
 			mem++;
 		}	
 		if (!label_present && (strcmp(mnemonic, "mul") == 0 || strcmp(mnemonic, "mla") == 0)) {
-			//printf("binary instr.: 0x%8x\n", swap(multiply(mnemonic, operands)));
+			printf("binary instr.: 0x%8x\n", swap(multiply(mnemonic, operands)));
 		}
 	}
 
@@ -498,9 +499,9 @@ int main(int argc, char** argv) {
 				default:
 					printf("mnemonic not recognised\n");
 			}
+			mem++;
+			fwrite(&instruction, sizeof(instruction), 1, fptr_2);
 		}
-		fwrite(&instruction, sizeof(instruction), 1, fptr_2);
-	mem++;
 	}
 
 	
