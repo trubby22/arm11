@@ -239,40 +239,36 @@ char* remove_special_chars(char* operand) {
 
 uint32_t data_processing(char* mnemonic, char** operands) {
 	uint8_t opcode = string_to_opcode(mnemonic) - 10;
+	bool immediate = has_hashtag(remove_whitespace(operands[1]));
+	if (opcode <= 5) {
+		immediate = has_hashtag(remove_whitespace(operands[2]));
+	}
+	if (strcmp(mnemonic, "mov") == 0 && immediate && get_operand_value(operands[1]) > 0xff) {
+		return 0;
+		//return singleDataTransfer(mnemonics, operands);
+	}
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
 	uint32_t operand = 0;
 
 	uint32_t result = 0;
-	char original[MAX_LINE_SIZE] = { '\0' };
-	char* org_operand2 = &(original[0]);
 		
 	if (opcode <= 5) {
 		register_d = get_operand_value(operands[0]);
 		register_n = get_operand_value(operands[1]);
-		memcpy(org_operand2, operands[2], MAX_LINE_SIZE);
 		operand = get_operand_value(operands[2]);
 	}
 	else if (opcode == 6) {
 		register_d = get_operand_value(operands[0]);
-		memcpy(org_operand2, operands[1], MAX_LINE_SIZE);
 		operand = get_operand_value(operands[1]);		
 	}
 	else if (opcode >= 7) {
 		result |= 1 << 20;
 		register_n = get_operand_value(operands[0]);
-		memcpy(org_operand2, operands[1], MAX_LINE_SIZE);
 		operand = get_operand_value(operands[1]);
 	}
 	
-	org_operand2 = remove_whitespace(org_operand2);
-	org_operand2 = remove_equals(org_operand2);
-	
-	if (opcode >= 6 && has_hashtag(org_operand2)) {
-		result = result | 0x02000000; // operand2 is an immediate value
-	}
-
-	if (opcode < 6 && has_hashtag(org_operand2)) {
+	if (immediate) {
 		result = result | 0x02000000; // operand2 is an immediate value
 	}
 	
