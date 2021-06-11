@@ -188,25 +188,31 @@ int string_to_opcode(char* key)
 
 uint32_t data_processing(char* mnemonic, char** operands) {
 	uint8_t opcode = string_to_opcode(mnemonic) - 10;
+	const uint8_t cond = 0xe;
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
 	uint16_t operand = 0;
 
-	uint32_t result = 0;
+	uint32_t result = (cond << 28) | (1 << 25);
 
-	if (opcode <= 5) {
+	if (opcode <= 5) { // and, eor, sub, rsb, add, orr
 		register_d = get_operand_value(operands[0]);
 		register_n = get_operand_value(operands[1]);
 		operand = get_operand_value(operands[2]);
 	}
-	else if (opcode == 6) {
+	else if (opcode == 6) { // mov
 		register_d = get_operand_value(operands[0]);
 		operand = get_operand_value(operands[1]);
+		opcode--;
 	}
-	else if (opcode >= 7) {
+	else if (opcode >= 7) { // tst, teq, cmp
 		result |= 1 << 20;
 		register_n = get_operand_value(operands[0]);
 		operand = get_operand_value(operands[1]);
+	}
+
+	if (opcode >= 5) {
+		result |= 1 << 24;
 	}
 
 	result |= opcode << 21;
@@ -257,7 +263,7 @@ uint32_t branch(char* mnemonic, const int current_address, const int target_addr
 		opcode--;
 	}
 	if (opcode > 1) {
-		// opcode = bge, blt, bgt, ble, OR bal
+		// opcode = bge, blt, bgt, ble, b OR bal
 		opcode |= 0x8;
 	}
 
