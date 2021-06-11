@@ -88,6 +88,10 @@ bool has_hashtag(char* operand) {
 	return (*operand == '#');
 }
 
+bool has_whitespace(char* operand) {
+	return (*operand == ' ');
+}
+
 char* remove_equals(char* operand) {
 	if (has_equals(operand)) {
 		operand += sizeof(char);
@@ -114,7 +118,15 @@ char* remove_hashtag(char* operand) {
 	return operand;
 }
 
+char* remove_whitespace(char* operand) {
+	if (has_whitespace(operand)) {
+		operand += sizeof(char);
+	}
+	return operand;
+}
+
 char* remove_special_chars(char* operand) {
+	operand = remove_whitespace(operand);
 	operand = remove_equals(operand);
 	operand = remove_sq_brackets(operand);
 	operand = remove_hashtag(operand);
@@ -423,10 +435,11 @@ int main(int argc, char** argv) {
 			i++;
 		} else {
 			//printf("mnemonic after function check: %s\n", mnemonic);
-			//printf("num_operands: %d\n", num_operands);
+			printf("num_operands: %d\n", num_operands);
 			for (int i = 0; i < num_operands; i++) {
-				//printf("operands[%d]: %s", i, operands[i]);
+				printf("operands[%d]: %s\n", i, operands[i]);
 				operands[i] = remove_special_chars(operands[i]);
+				printf("operands[%d]: %s\n", i, operands[i]);
 				if (is_register(operands[i])) {
 					//printf(" is a register");
 				} else {
