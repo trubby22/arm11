@@ -350,6 +350,16 @@ uint32_t special_lsl(char* mnemonic, char** operands) {
 	return data_processing(mnemonic, operands);
 }
 
+uint32_t special(char* mnemonic, char** operands) {
+	if (strcmp(mnemonic, "andeq") == 0) {
+		return andeq();
+	}
+	if (strcmp(mnemonic, "lsl") == 0) {
+		return special_lsl(mnemonic, operands);
+	}
+	return 0; // should not happen
+}
+
 //void second_pass(FILE* fp, Symbol_table* table) {
     // write binary to file
 	// For each instruction:
@@ -515,10 +525,11 @@ int main(int argc, char** argv) {
 					instruction = branch(mnemonic, mem * 4, target_address);
 					break;
 				case 5:
-					//instruction = special(mnemonic, operands);
+					instruction = special(mnemonic, operands);
 					break;
 				default:
 					printf("mnemonic not recognised\n");
+					break;
 			}
 			mem++;
 			fwrite(&instruction, sizeof(instruction), 1, fptr_2);
