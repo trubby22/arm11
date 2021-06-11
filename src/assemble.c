@@ -484,9 +484,10 @@ int main(int argc, char** argv) {
 	assert(second_pass_fptr != NULL && "Could not open file");
 
 	mem = 0;
-	int target_address;
+	
 	uint32_t instruction;
 	while (fgets(line, MAX_LINE_SIZE, second_pass_fptr)) {
+		int target_address;
 		if (*line == '\n') {
 			break;
 		}
@@ -507,7 +508,7 @@ int main(int argc, char** argv) {
 					break;
 				case 4:
 					for (int j = 0; j < i; j++) {
-						if (strcmp(labels[j], label) == 0) {
+						if (strcmp(labels[j], *operands) == 0) {
 							target_address = memory_addresses[j] * 4;
 						}
 					}
@@ -524,8 +525,6 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	
-	
 	free(label);
 	free(mnemonic);
 	free(operands[0]);
@@ -536,3 +535,4 @@ int main(int argc, char** argv) {
 
 	return EXIT_SUCCESS;
 }
+
