@@ -148,24 +148,30 @@ struct entry {
 };
 
 struct entry opcode[] = {
-	{"and", 0},
-	{"eor", 1},
-	{"sub", 2},
-	{"rsb", 3},
-	{"add", 4},
-	{"orr", 5},
-	{"mov", 6},
-	{"tst", 7},
-	{"teq", 8},
-	{"cmp", 9},
-	{"beq", 10},
-	{"bne", 11},
-	{"bge", 12},
-	{"blt", 13},
-	{"bgt", 14},
-	{"ble", 15},
-	{"bal", 16},
-    {"b",   17}
+	{"and", 10},
+	{"eor", 11},
+	{"sub", 12},
+	{"rsb", 13},
+	{"add", 14},
+	{"orr", 15},
+	{"mov", 16},
+	{"tst", 17},
+	{"teq", 18},
+	{"cmp", 19},
+	{"mul", 20},
+	{"mla", 21},
+	{"ldr", 30},
+	{"str", 31},
+	{"beq", 40},
+	{"bne", 41},
+	{"bge", 42},
+	{"blt", 43},
+	{"bgt", 44},
+	{"ble", 45},
+	{"bal", 46},
+    {"b",   47},
+	{"lsl", 50},
+	{"andeq", 51}
 };
 
 int string_to_opcode(char* key)
@@ -181,7 +187,7 @@ int string_to_opcode(char* key)
 }
 
 uint32_t data_processing(char* mnemonic, char** operands) {
-	uint8_t opcode = string_to_opcode(mnemonic);
+	uint8_t opcode = string_to_opcode(mnemonic) - 10;
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
 	uint16_t operand = 0;
@@ -357,7 +363,7 @@ int main(int argc, char** argv) {
 	FILE* fptr = fopen(argv[1], "r"); // "r" - read
 	assert(fptr != NULL && "Could not open file");
 
-	FILE* fptr_2 = fopen(argv[2], "w"); // "w" - write
+	FILE* fptr_2 = fopen(argv[2], "ab"); // "w" - write
 	assert(fptr != NULL && "Could not open file");
 
 	//two_pass_assembly(fptr, fptr_2);		
@@ -391,6 +397,47 @@ int main(int argc, char** argv) {
 		}
 	mem++;
 	}
+	
+	FILE* second_pass_fptr = fopen(argv[1], "r"); // "r" - read
+	assert(second_pass_fptr != NULL && "Could not open file");
+
+	mem = 0;
+	int target_address;
+	uint32_t instruction;
+	while (fgets(line, MAX_LINE_SIZE, second_pass_fptr)) {
+		remove_newline(line);
+		label_present = tokenizer(line, label, mnemonic, operands, &num_operands);
+		if (label_present) {
+			
+		} else {
+			switch (string_to_opcode(mnemonic) / 10) {
+				case 1:
+					instruction = data_processing(mnemonic, operands);
+					break;
+				case 2:
+					instruction = multiply(mnemonic, operands);
+					break;
+				case 3:
+					//instruction = singleDataTransfer();
+					break;
+				case 4:
+					for (int j = 0; j < i; j++) {
+						if (strcmp(labels[j], label) == 0) {
+							target_address = memory_addresses[j] * 4;
+						}
+					}
+					instruction = branch(mnemonic, mem * 4, target_address);
+					break;
+				case 5:
+					//instruction = special(mnemonic, operands);
+					break;
+				default:
+					printf("mnemonic not recognised");
+			}
+		}
+		fwrite(&instruction, sizeof(instruction), 1, fptr_2);
+	mem++;
+	}
 
 	printf("number of lines read: %d\n", mem);
 	printf("labels found: %d\n", i);    
@@ -405,6 +452,7 @@ int main(int argc, char** argv) {
 
 	fclose(fptr);
 	fclose(fptr_2);
+	fclose(second_pass_fptr);
 
 	return EXIT_SUCCESS;
 }
