@@ -124,6 +124,7 @@ char* remove_special_chars(char* operand) {
 // takes operand string and returns either decimal register number or decimal immediate value
 uint32_t get_operand_value(char* operand) {
 	// register
+	operand = remove_special_chars(operand);
 	if (is_register(operand)) {
 		operand += sizeof(char);
 		return strtol(operand, NULL, 10);
@@ -136,7 +137,6 @@ uint32_t get_operand_value(char* operand) {
 	}
 	// decimal immediate
 	operand -= sizeof(char);
-	operand = remove_special_chars(operand);
 	return strtol(operand, NULL, 10);
 }
 
@@ -154,11 +154,11 @@ struct entry opcode[] = {
 	{"sub", 12},
 	{"rsb", 13},
 	{"add", 14},
-	{"orr", 15},
-	{"mov", 16},
-	{"tst", 17},
-	{"teq", 18},
-	{"cmp", 19},
+	{"orr", 15}, // orr = 12
+	{"mov", 16}, // mov = 13
+	{"tst", 17}, // tst = 8
+	{"teq", 18}, // teq = 9
+	{"cmp", 19}, // cmp = 10
 	{"mul", 20},
 	{"mla", 21},
 	{"ldr", 30},
@@ -170,9 +170,22 @@ struct entry opcode[] = {
 	{"bgt", 44},
 	{"ble", 45},
 	{"bal", 46},
-    {"b",   47},
+  {"b", 47},
 	{"lsl", 50},
 	{"andeq", 51}
+};
+
+struct entry opcode_dp[] = {
+	{"and", 0x0},
+	{"eor", 0x1},
+	{"sub", 0x2},
+	{"rsb", 0x3},
+	{"add", 0x4},
+	{"orr", 0xc},
+	{"mov", 0xd},
+	{"tst", 0x8},
+	{"teq", 0x9},
+	{"cmp", 0xa}
 };
 
 int string_to_opcode(char* key)
@@ -187,39 +200,60 @@ int string_to_opcode(char* key)
 	return 0;
 }
 
+int string_to_opcode_dp(char* key)
+{
+	int i = 0;
+	char* name = opcode_dp[i].str;
+	while (name) {
+		if (strcmp(name, key) == 0)
+			return opcode_dp[i].n;
+		name = opcode_dp[++i].str;
+	}
+	return 0;
+}
+
 uint32_t data_processing(char* mnemonic, char** operands) {
 	uint8_t opcode = string_to_opcode(mnemonic) - 10;
-	const uint8_t cond = 0xe;
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
 	uint16_t operand = 0;
 
-	uint32_t result = (cond << 28) | (1 << 25);
+	uint32_t result = 0;
 
-	if (opcode <= 5) { // and, eor, sub, rsb, add, orr
+	if (opcode <= 5) {
 		register_d = get_operand_value(operands[0]);
 		register_n = get_operand_value(operands[1]);
 		operand = get_operand_value(operands[2]);
 	}
-	else if (opcode == 6) { // mov
+	else if (opcode == 6) {
 		register_d = get_operand_value(operands[0]);
-		operand = get_operand_value(operands[1]);
-		opcode--;
+		operand = get_operand_value(operands[1]);		
+		printf("operand is: %u\n", operand);
+		printf("get_operand_value(operands[1]): %d\n", get_operand_value(operands[1]));
+		printf("operands[1]: %s\n", operands[1]);
 	}
-	else if (opcode >= 7) { // tst, teq, cmp
+	else if (opcode >= 7) {
 		result |= 1 << 20;
 		register_n = get_operand_value(operands[0]);
 		operand = get_operand_value(operands[1]);
 	}
 
-	if (opcode >= 5) {
-		result |= 1 << 24;
+	if (opcode >= 6 && has_hashtag(operands[1])) {
+		result = result | 0x02000000; // operand2 is an immediate value
 	}
 
-	result |= opcode << 21;
+	if (opcode < 6 && has_hashtag(operands[2])) {
+		result = result | 0x02000000; // operand2 is an immediate value
+	}
+
+	printf("opcode is: 0x%1x\n", string_to_opcode_dp(mnemonic));
+
+	result |= string_to_opcode_dp(mnemonic) << 21; // gets the actual opcode
 	result |= register_n << 16;
 	result |= register_d << 12;
 	result |= operand;
+
+	result = result | 0xe0000000; // cond field = 0111
 
 	return result;
 }
@@ -264,7 +298,7 @@ uint32_t branch(char* mnemonic, const int current_address, const int target_addr
 		opcode--;
 	}
 	if (opcode > 1) {
-		// opcode = bge, blt, bgt, ble, b OR bal
+		// opcode = bge, blt, bgt, ble, OR bal
 		opcode |= 0x8;
 	}
 
@@ -380,33 +414,40 @@ int main(int argc, char** argv) {
 
 	while (fgets(line, MAX_LINE_SIZE, fptr)) {
 		remove_newline(line);
-		printf("%s\n", line);
+		//printf("%s\n", line);
 		label_present = tokenizer(line, label, mnemonic, operands, &num_operands);
 		if (label_present) {
-			printf("label after function check: %s\n", label);
 			strcpy(labels[i], label);
 			memory_addresses[i] = mem;
+			printf("label after function check: %s is referring to line: %d\n", label, memory_addresses[i]);
 			i++;
 		} else {
-			printf("mnemonic after function check: %s\n", mnemonic);
-			printf("num_operands: %d\n", num_operands);
+			//printf("mnemonic after function check: %s\n", mnemonic);
+			//printf("num_operands: %d\n", num_operands);
 			for (int i = 0; i < num_operands; i++) {
-				printf("operands[%d]: %s", i, operands[i]);
+				//printf("operands[%d]: %s", i, operands[i]);
 				operands[i] = remove_special_chars(operands[i]);
 				if (is_register(operands[i])) {
-					printf(" is a register");
+					//printf(" is a register");
 				} else {
-					printf(" isn't a register");
+					//printf(" isn't a register");
 				}
-				printf(" with value %u", get_operand_value(operands[i]));
-				printf("\n");
+				//printf(" with value %u", get_operand_value(operands[i]));
+				//printf("\n");
 			}
+			mem++;
 		}	
 		if (!label_present && (strcmp(mnemonic, "mul") == 0 || strcmp(mnemonic, "mla") == 0)) {
-			printf("binary instr.: 0x%8x\n", swap(multiply(mnemonic, operands)));
+			//printf("binary instr.: 0x%8x\n", swap(multiply(mnemonic, operands)));
 		}
-	mem++;
 	}
+
+	printf("number of lines read: %d, (non-label: %d, labels: %d)\n", mem + i, mem, i);
+	for (int j = 0; j < i; j++) {
+		//printf("Label: %s, has memory address %d\n", labels[j], memory_addresses[j]);
+	}
+
+	fclose(fptr);
 	
 	FILE* second_pass_fptr = fopen(argv[1], "r"); // "r" - read
 	assert(second_pass_fptr != NULL && "Could not open file");
@@ -442,25 +483,20 @@ int main(int argc, char** argv) {
 					//instruction = special(mnemonic, operands);
 					break;
 				default:
-					printf("mnemonic not recognised");
+					printf("mnemonic not recognised\n");
 			}
 		}
 		fwrite(&instruction, sizeof(instruction), 1, fptr_2);
 	mem++;
 	}
 
-	printf("number of lines read: %d\n", mem);
-	printf("labels found: %d\n", i);    
-	for (int j = 0; j < i; j++) {
-		printf("Label: %s, has memory address %d\n", labels[j], memory_addresses[j]);
-	}
+	
 	
 	free(label);
 	free(mnemonic);
 	free(operands[0]);
 	free(operands);
 
-	fclose(fptr);
 	fclose(fptr_2);
 	fclose(second_pass_fptr);
 
