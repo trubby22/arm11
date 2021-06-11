@@ -136,6 +136,7 @@ uint32_t get_operand_value(char* operand) {
 	}
 	// decimal immediate
 	operand -= sizeof(char);
+	operand = remove_special_chars(operand);
 	return strtol(operand, NULL, 10);
 }
 
