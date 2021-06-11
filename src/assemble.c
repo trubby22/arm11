@@ -243,12 +243,13 @@ uint32_t singleDataTransfer(char* label, int* opcode, uint32_t** operands, uint3
 // the target address passed in to this function is either a specific 32-bit 
 // address or a label.
 uint32_t branch(char* mnemonic, const int current_address, const int target_address) {
-	uint32_t opcode, result;
+	uint32_t  result, opcode = string_to_opcode(mnemonic) % 10;
 	int32_t offset;
 	const uint32_t unchanged_bits = 0xa << 24;
 
-	// opcode = b if mnemonic length is 1 
-	opcode = strlen(mnemonic) == 1 ? 0xe : string_to_opcode(mnemonic) % 10;
+	if (strcmp("b", mnemonic)) {
+		opcode--;
+	}
 	if (opcode > 1) {
 		// opcode = bge, blt, bgt, ble, OR bal
 		opcode |= 0x8;
