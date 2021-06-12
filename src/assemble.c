@@ -244,7 +244,7 @@ uint32_t data_processing(char* mnemonic, char** operands) {
 	}
 	if (strcmp(mnemonic, "mov") == 0 && immediate && get_operand_value(operands[1]) > 0xff) {
 		return 0;
-		//return singleDataTransfer(mnemonics, operands);
+		//return single_data_transfer(mnemonics, operands, 0);
 	}
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
@@ -307,8 +307,72 @@ uint32_t multiply(char* mnemonic, char** operands) {
 	return result;
 }
 
-uint32_t singleDataTransfer(char* label, int* opcode, uint32_t** operands, uint32_t operand_count) {
+uint8_t get_register(char* operand) {
+	char* register_number = operand + 2; 
+	//TODO: Get register number
 	return 0;
+}
+
+bool has_expression(char* operand) {
+	// TODO: Check if has a constant 
+	return false;
+}
+
+uint16_t get_expression(char* operand) {
+	//TODO: get expression from operand
+	return 0;
+}
+
+bool is_post(char* operand) { 
+	//Looks like: [Rn],<#expression>
+	for (int i = 0; operand[i] != '\0'; i++) {
+		if (operand[i] == ']') {
+			return true;
+		}
+		if (operand[i] == ',') {
+			return false;
+		}
+	}
+	return false;
+}
+
+uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_count) {
+	//TODO: remove print after debugging
+	printf("Operands[0]: %s\nOperands[1]: %s\n", operands[0], operands[1]);
+
+	uint32_t address = get_operand_value(operands[1]);
+	bool immediate = true;
+
+	if (!is_register(address)) { // If expression is a constant
+		if (address <= 0xFF) {
+			return data_processing("mov", operands);
+		}	
+		immediate = false;
+	}
+
+	bool preindexing = true;
+	bool load = strcmp(*mnemonic, "ldr") == 0;
+	uint8_t register_n = get_register(operands[1]);
+	uint32_t register_d = get_operand_value(operands[0]);
+	uint16_t offset = 0;
+	uint32_t result = 0xE4000000;
+
+	if (has_expression(operands[1])) { // num_operands == 3?
+		//TODO: offset = get_operand_value(operands[2])?
+		offset = get_expression(operands[1]); 
+		if (is_post(operands[1])) {
+			preindexing = false;
+		}
+	}
+
+	result |= immediate << 25;
+	result |= preindexing << 24;
+	result |= load << 20;
+	result |= register_n << 16;
+	result |= register_d << 12;
+	result |= offset;
+
+	return result;
 }
 
 
@@ -513,7 +577,7 @@ int main(int argc, char** argv) {
 					instruction = multiply(mnemonic, operands);
 					break;
 				case 3:
-					//instruction = singleDataTransfer();
+					instruction = single_data_transfer(mnemonic, operands, 0);
 					break;
 				case 4:
 					for (int j = 0; j < i; j++) {
