@@ -307,20 +307,9 @@ uint32_t multiply(char* mnemonic, char** operands) {
 	return result;
 }
 
-uint8_t get_register(char* operand) {
-	//char* register_number = operand + 2; 
-	//TODO: Get register number
-	return 0;
-}
-
 bool has_expression(char* operand) {
-	// TODO: Check if has a constant 
-	return false;
-}
-
-uint16_t get_expression(char* operand) {
-	//TODO: get expression from operand
-	return 0;
+	operand = remove_whitespace(operand);
+	return has_hashtag(operand);
 }
 
 bool is_post(char* operand) { 
@@ -352,14 +341,13 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 
 	bool preindexing = true;
 	bool load = strcmp(mnemonic, "ldr") == 0;
-	uint8_t register_n = get_register(operands[1]);
+	uint8_t register_n = get_operand_value(operands[1]);
 	uint32_t register_d = get_operand_value(operands[0]);
 	uint16_t offset = 0;
 	uint32_t result = 0xE4000000;
 
-	if (has_expression(operands[1])) { // num_operands == 3?
-		//TODO: offset = get_operand_value(operands[2])?
-		offset = get_expression(operands[1]); 
+	if (has_expression(operands[1])) {
+		offset = get_operand_value(operands[1]); 
 		if (is_post(operands[1])) {
 			preindexing = false;
 		}
@@ -376,7 +364,6 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 
 	return result;
 }
-
 
 // the target address passed in to this function is either a specific 32-bit 
 // address or a label.
