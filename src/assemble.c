@@ -157,7 +157,7 @@ uint32_t get_operand_value(char* operand) {
 //TODO: move to top where it should be
 
 struct entry {
-	const char* str;
+	char* str;
 	uint8_t n;
 };
 
@@ -308,7 +308,7 @@ uint32_t multiply(char* mnemonic, char** operands) {
 }
 
 uint8_t get_register(char* operand) {
-	char* register_number = operand + 2; 
+	//char* register_number = operand + 2; 
 	//TODO: Get register number
 	return 0;
 }
@@ -343,7 +343,7 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 	uint32_t address = get_operand_value(operands[1]);
 	bool immediate = true;
 
-	if (!is_register(address)) { // If expression is a constant
+	if (!is_register(operands[1])) { // If expression is a constant
 		if (address <= 0xFF) {
 			return data_processing("mov", operands);
 		}	
@@ -351,7 +351,7 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 	}
 
 	bool preindexing = true;
-	bool load = strcmp(*mnemonic, "ldr") == 0;
+	bool load = strcmp(mnemonic, "ldr") == 0;
 	uint8_t register_n = get_register(operands[1]);
 	uint32_t register_d = get_operand_value(operands[0]);
 	uint16_t offset = 0;
@@ -371,6 +371,8 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 	result |= register_n << 16;
 	result |= register_d << 12;
 	result |= offset;
+
+	printf("no segfault yet");
 
 	return result;
 }
