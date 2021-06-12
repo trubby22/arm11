@@ -334,6 +334,7 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 
 	if (!is_register(operands[1])) { // If expression is a constant
 		if (address <= 0xFF) {
+			operands[1][0] = '#'; 
 			return data_processing("mov", operands);
 		}	
 		immediate = false;
@@ -359,8 +360,6 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 	result |= register_n << 16;
 	result |= register_d << 12;
 	result |= offset;
-
-	printf("no segfault yet");
 
 	return result;
 }
