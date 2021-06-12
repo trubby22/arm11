@@ -6,6 +6,7 @@
 #include <stdbool.h>
 
 #define MAX_LINE_SIZE 511
+#define NUM_OPCODES 24
 
 // swap used to convert from big endian to little endian
 uint32_t swap(uint32_t num) {
@@ -67,7 +68,7 @@ bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_
 	return false;
 }
 
-// is_register and get_operand_value are useful in the 4 instruction functions: DP, SDT, multiply, branch
+// is_register and get_operand_value are useful in the 4 instruction functions: DP, SDbbbT, multiply, branch
 
 bool is_register(char* operand) {
 	if (operand[0] == 'r') {
@@ -156,8 +157,8 @@ uint32_t get_operand_value(char* operand) {
 //TODO: move to top where it should be
 
 struct entry {
-	char* str;
-	int n;
+	const char* str;
+	uint8_t n;
 };
 
 struct entry opcode[] = {
@@ -182,7 +183,7 @@ struct entry opcode[] = {
 	{"bgt", 44},
 	{"ble", 45},
 	{"bal", 46},
-  {"b", 47},
+	{"b", 47},
 	{"lsl", 50},
 	{"andeq", 51}
 };
@@ -200,14 +201,12 @@ struct entry opcode_dp[] = {
 	{"cmp", 0xa}
 };
 
-int string_to_opcode(char* key)
+uint8_t string_to_opcode(char* key)
 {
-	int i = 0;
-	char* name = opcode[i].str;
-	while (name) {
-		if (strcmp(name, key) == 0)
+	for (uint8_t i = 0; i < NUM_OPCODES; i++) {
+		if (strcmp(opcode[i].str, key) == 0) {
 			return opcode[i].n;
-		name = opcode[++i].str;
+		}
 	}
 	return 0;
 }
