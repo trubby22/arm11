@@ -93,6 +93,24 @@ bool has_whitespace(char* operand) {
 	return (*operand == ' ');
 }
 
+bool begins_with_sq_bracket(char* operand) {
+	return (*operand == '[');
+}
+
+bool ends_with_sq_bracket(char* str) {
+	int i;
+	for (i = 0; str[i] != '\0'; i++) {
+		if (str[i] == ']') {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool minus(char* str) {
+	return (*str == '-');
+}
+
 char* remove_equals(char* operand) {
 	if (has_equals(operand)) {
 		operand += sizeof(char);
@@ -124,6 +142,30 @@ char* remove_whitespace(char* operand) {
 		operand += sizeof(char);
 	}
 	return operand;
+}
+
+char* remove_l_bracket(char* operand) {
+	if (begins_with_sq_bracket(operand)) {
+		operand += sizeof(char);
+	}
+	return operand;
+}
+
+char* remove_r_bracket(char* str) {
+	int i;
+	for (i = 0; str[i] != '\0'; i++) {
+		if (str[i] == ']') {
+			str[i] = '\0';
+		}
+	}
+	return str;
+}
+
+char* remove_minus(char* str) {
+	if (minus(str)) {
+		str += sizeof(char);
+	}
+	return str;
 }
 
 char* remove_special_chars(char* operand) {
@@ -236,15 +278,17 @@ char* remove_special_chars(char* operand) {
 }
 */
 
-uint32_t data_processing(char* mnemonic, char** operands) {
+uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_count, uint32_t* constants, uint32_t* consts_size, uint32_t num_lines, uint32_t curr_line, uint32_t num_operands);
+
+uint32_t data_processing(char* mnemonic, char** operands, uint32_t* constants, uint32_t* consts_size, uint32_t num_lines, uint32_t curr_line, uint32_t num_operands) {
 	uint8_t opcode = string_to_opcode(mnemonic) - 10;
 	bool immediate = has_hashtag(remove_whitespace(operands[1]));
 	if (opcode <= 5) {
 		immediate = has_hashtag(remove_whitespace(operands[2]));
 	}
 	if (strcmp(mnemonic, "mov") == 0 && immediate && get_operand_value(operands[1]) > 0xff) {
-		return 0;
-		//return single_data_transfer(mnemonics, operands, 0);
+		printf("calling SDT\n");
+		return single_data_transfer(mnemonic, operands, 0, constants, consts_size, num_lines, curr_line, num_operands);
 	}
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
@@ -309,7 +353,7 @@ uint32_t multiply(char* mnemonic, char** operands) {
 
 bool has_expression(char* operand) {
 	operand = remove_whitespace(operand);
-	return has_hashtag(operand);
+	return has_equals(operand);
 }
 
 bool is_post(char* operand) { 
@@ -325,41 +369,135 @@ bool is_post(char* operand) {
 	return false;
 }
 
-uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_count) {
-	//TODO: remove print after debugging
-	printf("Operands[0]: %s\nOperands[1]: %s\n", operands[0], operands[1]);
-
-	uint32_t address = get_operand_value(operands[1]);
-	bool immediate = true;
-
-	if (!is_register(operands[1])) { // If expression is a constant
-		if (address <= 0xFF) {
-			operands[1][0] = '#'; 
-			return data_processing("mov", operands);
-		}	
-		immediate = false;
+// redundant
+void add_sq_brackets(char* str, char* str_2, char* res) {
+	res[0] = '[';
+	int i;
+	int j;
+	for (i = 0; str[i] != '\0'; i++) {
+		res[i + 1] = str[i];
 	}
+	for (j = 0; str_2[j] != '\0'; j++) {
+		res[j + 1 + i] = str[j];
+	}
+	res[j + 1 + i] = ']';
+	res[j + 2 + i] = '\0';
+}
+
+// redundant
+void add_l_sq_bracket(char* str) {
+	int size = 0;
+	for (int i = 0; str[i] != '\0'; i++) {
+		size++;
+	}
+	for (int i = size; i >= 0; i--) {
+		str[i] = str[i-1];
+		if (i == 0) {
+			str[i] = '[';
+		}
+	}
+}
+
+// redundant
+void add_r_sq_bracket(char* str) {
+	int i;
+	for (i = 0; str[i] != '\0'; i++) {
+		
+	}
+	str[i] = ']';
+	str[i + 1] = '\0';
+}
+
+
+
+uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_count, uint32_t* constants, uint32_t* consts_size, uint32_t num_lines, uint32_t curr_line, uint32_t num_operands) {
+	//TODO: remove print after debugging
 
 	bool preindexing = true;
-	bool load = strcmp(mnemonic, "ldr") == 0;
-	uint8_t register_n = get_operand_value(operands[1]);
-	uint32_t register_d = get_operand_value(operands[0]);
-	uint16_t offset = 0;
-	uint32_t result = 0xE4000000;
 
-	if (has_expression(operands[1])) {
-		offset = get_operand_value(operands[1]); 
-		if (is_post(operands[1])) {
-			preindexing = false;
+	if (num_operands == 3 && ends_with_sq_bracket(operands[1])) {
+		preindexing = false;
+	}
+/*
+	char temp[MAX_LINE_SIZE] = { '\0' };
+	char* ptr = &(temp[0]);
+
+	char temp_2[MAX_LINE_SIZE] = { '\0' };
+	char* ptr_2 = &(temp_2[0]);
+*/
+		
+	printf("Operands[0]: %s\nOperands[1]: %s\n", operands[0], operands[1]);
+	bool immediate = true;
+	//bool constant_present = has_expression(operands[1]);
+	bool is_post;
+	operands[1] = remove_whitespace(operands[1]);
+	is_post = has_sq_brackets(operands[1]);
+	uint32_t offset = 0;
+
+	printf("check\n");
+	printf("op 1: %s\n", remove_special_chars(operands[1]));
+
+	
+	uint32_t address = get_operand_value(operands[1]);
+	printf("check 2\n");
+
+	if (strcmp(mnemonic, "ldr") == 0 && !is_register(operands[1])) { // If expression is a constant
+		if (address <= 0xFF) {
+			printf("returning dp\n");
+			//operands[1][0] = '#'; 
+			return data_processing("mov", operands, constants, consts_size, num_lines, curr_line, num_operands);
+		} else {	
+			constants[*consts_size] = get_operand_value(operands[1]);
+			*consts_size = *consts_size + 1;
+			offset = ((num_lines + (*consts_size)) - curr_line) * 4 - 8;
+			strcpy(operands[1], "[r15");
+			if (sprintf(operands[2], "#%d]", offset) < 0) {
+				printf("Error!\n");
+			}
+			return single_data_transfer(mnemonic, operands, load_count, constants, consts_size, num_lines, curr_line, num_operands);
 		}
 	}
 
+	// operand[1] is a register
+
+	if (preindexing && num_operands == 2) {
+		operands[1] = remove_l_bracket(operands[1]);
+		operands[2] = remove_r_bracket(operands[2]);
+	}	
+	
+	bool up = true;
+	
+	bool load = strcmp(mnemonic, "ldr") == 0;
+	uint32_t register_n = get_operand_value(operands[1]);
+	uint32_t register_d = get_operand_value(operands[0]);
+	//offset = 0;
+	uint32_t result = 0xe4000000;
+
+	if (num_operands == 3 && minus(operands[2])) {
+		up = false;
+		operands[2] = remove_minus(operands[2]);
+	}
+
+	offset = get_operand_value(operands[2]);
+
+/*
+	if (constant_present) {
+		offset = get_operand_value(operands[1]); 
+		if (is_post) {
+			preindexing = false;
+		}
+	}
+*/
+
 	result |= immediate << 25;
 	result |= preindexing << 24;
+	result |= up << 23;
 	result |= load << 20;
 	result |= register_n << 16;
 	result |= register_d << 12;
 	result |= offset;
+
+	printf("no segfault yet\n");
 
 	return result;
 }
@@ -393,20 +531,20 @@ uint32_t andeq(void) {
 	return 0;	
 }
 
-uint32_t special_lsl(char* mnemonic, char** operands) {
+uint32_t special_lsl(char* mnemonic, char** operands, uint32_t* constants, uint32_t* last_line, uint32_t num_lines, uint32_t curr_line, uint32_t num_operands) {
 	char* num = operands[1];
 	operands[1] = operands[0];
 	operands[2] = mnemonic;
 	operands[3] = num;
-	return data_processing(mnemonic, operands);
+	return data_processing(mnemonic, operands, constants, last_line, num_lines, curr_line, num_operands);
 }
 
-uint32_t special(char* mnemonic, char** operands) {
+uint32_t special(char* mnemonic, char** operands, uint32_t* constants, uint32_t* last_line, uint32_t num_lines, uint32_t curr_line, uint32_t num_operands) {
 	if (strcmp(mnemonic, "andeq") == 0) {
 		return andeq();
 	}
 	if (strcmp(mnemonic, "lsl") == 0) {
-		return special_lsl(mnemonic, operands);
+		return special_lsl(mnemonic, operands, constants, last_line, num_lines, curr_line, num_operands);
 	}
 	return 0; // should not happen
 }
@@ -486,6 +624,9 @@ int main(int argc, char** argv) {
 	bool label_present = false;	
 	int i = 0;
 	uint8_t mem = 0;
+	uint32_t constants[100] = { 0 };
+	uint32_t consts_size;
+	uint32_t num_lines;
 
 	assert(argc == 3 && "Enter two arguments");
 
@@ -513,12 +654,12 @@ int main(int argc, char** argv) {
 			//printf("label after function check: %s is referring to line: %d\n", label, memory_addresses[i]);
 			i++;
 		} else {
-			//printf("mnemonic after function check: %s\n", mnemonic);
-			//printf("num_operands: %d\n", num_operands);
+			printf("mnemonic after function check: %s\n", mnemonic);
+			printf("num_operands: %d\n", num_operands);
 			for (int i = 0; i < num_operands; i++) {
-				//printf("operands[%d]: %s\n", i, operands[i]);
+				printf("operands[%d]: %s\n", i, operands[i]);
 				operands[i] = remove_special_chars(operands[i]);
-				//printf("operands[%d]: %s\n", i, operands[i]);
+				printf("[no special chars] operands[%d]: %s\n", i, operands[i]);
 				if (is_register(operands[i])) {
 					//printf(" is a register\n");
 				} else {
@@ -536,8 +677,12 @@ int main(int argc, char** argv) {
 
 	printf("number of lines read: %d, (non-label: %d, labels: %d)\n", mem + i, mem, i);
 	for (int j = 0; j < i; j++) {
-		//printf("Label: %s, has memory address %d\n", labels[j], memory_addresses[j]);
+		printf("Label: %s, has memory address %d\n", labels[j], memory_addresses[j]);
 	}
+
+	num_lines = mem;
+
+	consts_size = 0;
 
 	fclose(fptr);
 	
@@ -559,13 +704,13 @@ int main(int argc, char** argv) {
 		} else {
 			switch (string_to_opcode(mnemonic) / 10) {
 				case 1:
-					instruction = data_processing(mnemonic, operands);
+					instruction = data_processing(mnemonic, operands, &(constants[0]), &consts_size, num_lines, mem, num_operands);
 					break;
 				case 2:
 					instruction = multiply(mnemonic, operands);
 					break;
 				case 3:
-					instruction = single_data_transfer(mnemonic, operands, 0);
+					instruction = single_data_transfer(mnemonic, operands, 0, &(constants[0]), &consts_size, num_lines, mem, num_operands);
 					break;
 				case 4:
 					for (int j = 0; j < i; j++) {
@@ -576,7 +721,7 @@ int main(int argc, char** argv) {
 					instruction = branch(mnemonic, mem * 4, target_address);
 					break;
 				case 5:
-					instruction = special(mnemonic, operands);
+					instruction = special(mnemonic, operands, &(constants[0]), &consts_size, num_lines, mem, num_operands);
 					break;
 				default:
 					printf("mnemonic not recognised\n");
@@ -585,6 +730,12 @@ int main(int argc, char** argv) {
 			mem++;
 			fwrite(&instruction, sizeof(instruction), 1, fptr_2);
 		}
+		printf("loop success\n");
+	}
+
+	for (int j = 0; j < consts_size; j++) {
+		printf("storing constant: 0x%8x at address %d\n", constants[j], (mem + j) * 4);
+		fwrite(&(constants[j]), sizeof(uint32_t), 1, fptr_2);
 	}
 
 	free(label);
