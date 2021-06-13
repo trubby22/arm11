@@ -283,7 +283,8 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 
 uint32_t data_processing(char* mnemonic, char** operands, uint32_t* constants, uint32_t* consts_size, uint32_t num_lines, uint32_t curr_line, uint32_t num_operands) {
 	uint8_t opcode = string_to_opcode(mnemonic) - 10;
-	bool immediate = has_hashtag(remove_whitespace(operands[1]));
+	printf("operands[1] = %s\n", operands[1]);
+	bool immediate = has_hashtag(remove_whitespace(operands[1])) || has_equals(operands[1]);
 	if (opcode <= 5) {
 		immediate = has_hashtag(remove_whitespace(operands[2]));
 	}
@@ -436,8 +437,12 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 	uint32_t offset = 0;
 
 	printf("check\n");
-	printf("op 1: %s\n", remove_special_chars(operands[1]));
 
+	//printf("operands[1] = %s\n", operands[1]);
+	if (has_sq_brackets(operands[1])) {
+		operands[1] = remove_sq_brackets(operands[1]);
+		immediate = false;
+	}
 	
 	uint32_t address = get_operand_value(operands[1]);
 	printf("check 2\n");
