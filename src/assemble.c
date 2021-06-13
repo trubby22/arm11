@@ -57,7 +57,8 @@ bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_
 
 	while (token != NULL) {
 		//printf("1st loop check: %s\n", token);
-		memcpy(operands[n], token, MAX_LINE_SIZE * sizeof(char));
+		//memcpy(operands[n], token, MAX_LINE_SIZE * sizeof(char));
+		strcpy(operands[n], token);
 		token = strtok(NULL, ",");
 		n++;
 	}
@@ -429,9 +430,9 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 	printf("Operands[0]: %s\nOperands[1]: %s\n", operands[0], operands[1]);
 	bool immediate = true;
 	//bool constant_present = has_expression(operands[1]);
-	bool is_post;
+	//bool is_post;
 	operands[1] = remove_whitespace(operands[1]);
-	is_post = has_sq_brackets(operands[1]);
+	//is_post = has_sq_brackets(operands[1]);
 	uint32_t offset = 0;
 
 	printf("check\n");
