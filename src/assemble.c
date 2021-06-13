@@ -290,6 +290,7 @@ uint32_t rotate_left(uint32_t value, uint8_t shift) {
 
 uint32_t data_processing(char* mnemonic, char** operands, uint32_t* constants, uint32_t* consts_size, uint32_t num_lines, uint32_t curr_line, uint32_t num_operands) {
 	printf("\n");
+	printf("dp start, mnemonic: %s\n", mnemonic);
 	uint8_t opcode = string_to_opcode(mnemonic) - 10;
 	printf("operands[1] = %s\n", operands[1]);
 	bool immediate = has_hashtag(remove_whitespace(operands[1])) || has_equals(operands[1]);
@@ -297,10 +298,13 @@ uint32_t data_processing(char* mnemonic, char** operands, uint32_t* constants, u
 		immediate = has_hashtag(remove_whitespace(operands[2]));
 	}
 
-	/* if (strcmp(mnemonic, "mov") == 0 && immediate && get_operand_value(operands[1]) > 0xff) {
-		printf("calling SDT\n");
+	if (strcmp(mnemonic, "mov") == 0 && immediate && get_operand_value(operands[1]) > 0xff) {
+		printf("=== calling SDT ===\n");
+		strcpy(mnemonic, "ldr");
+		operands[1][0] = '=';
+		printf("%s\n", operands[1]);
 		return single_data_transfer(mnemonic, operands, 0, constants, consts_size, num_lines, curr_line, num_operands);
-	} */
+	}
 
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
