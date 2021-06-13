@@ -472,6 +472,7 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 		immediate = false;
 	}
 
+	//
 	printf("%s\n", operands[1]);	
 	uint32_t address = get_operand_value(operands[1]);
 	printf("check 2\n");
