@@ -453,6 +453,9 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 */
 		
 	printf("Operands[0]: %s\nOperands[1]: %s\n", operands[0], operands[1]);
+	if (num_operands == 3) {
+		printf("operands[2]: %s\n", operands[2]);
+	}
 	bool immediate = true;
 	//bool constant_present = has_expression(operands[1]);
 	bool is_post;
@@ -481,12 +484,14 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 			return data_processing("mov", operands, constants, consts_size, num_lines, curr_line, num_operands);
 		} else {	
 			constants[*consts_size] = get_operand_value(operands[1]);
-			*consts_size = *consts_size + 1;
 			offset = ((num_lines + (*consts_size)) - curr_line) * 4 - 8;
+			*consts_size = *consts_size + 1;
 			strcpy(operands[1], "[r15");
 			if (sprintf(operands[2], "#%d]", offset) < 0) {
 				printf("Error!\n");
 			}
+			printf("big address, calling SDT\n");
+			num_operands++;
 			return single_data_transfer(mnemonic, operands, load_count, constants, consts_size, num_lines, curr_line, num_operands);
 		}
 	}
