@@ -455,11 +455,12 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 	printf("Operands[0]: %s\nOperands[1]: %s\n", operands[0], operands[1]);
 	bool immediate = true;
 	//bool constant_present = has_expression(operands[1]);
-	//bool is_post;
+	bool is_post;
 	operands[1] = remove_whitespace(operands[1]);
-	//is_post = has_sq_brackets(operands[1]);
+	is_post = has_sq_brackets(operands[1]);
 	uint32_t offset = 0;
 
+	printf("%d\n", is_post);
 	printf("check\n");
 
 	//printf("operands[1] = %s\n", operands[1]);
@@ -467,9 +468,11 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 		operands[1] = remove_sq_brackets(operands[1]);
 		immediate = false;
 	}
-	
+
+	printf("%s\n", operands[1]);	
 	uint32_t address = get_operand_value(operands[1]);
 	printf("check 2\n");
+	printf("%s\n", operands[1]);
 
 	if (strcmp(mnemonic, "ldr") == 0 && !is_register(operands[1])) { // If expression is a constant
 		if (address <= 0xFF) {
@@ -508,7 +511,9 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 		operands[2] = remove_minus(operands[2]);
 	}
 
-	offset = get_operand_value(operands[2]);
+	if (num_operands == 3) {
+		offset = get_operand_value(operands[2]);
+	}
 
 /*
 	if (constant_present) {
