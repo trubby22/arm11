@@ -281,20 +281,31 @@ char* remove_special_chars(char* operand) {
 
 uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_count, uint32_t* constants, uint32_t* consts_size, uint32_t num_lines, uint32_t curr_line, uint32_t num_operands);
 
+// bitwise circular left rotation for calculating rotate and operand fields of operand2 of 
+uint32_t rotate_left(uint32_t value, uint8_t shift) {
+	 if ((shift &= (sizeof(value) << 3) - 1) == 0)
+      return value;
+    return (value << shift) | (value >> ((sizeof(value) << 3) - shift));
+}
+
 uint32_t data_processing(char* mnemonic, char** operands, uint32_t* constants, uint32_t* consts_size, uint32_t num_lines, uint32_t curr_line, uint32_t num_operands) {
+	printf("\n");
 	uint8_t opcode = string_to_opcode(mnemonic) - 10;
 	printf("operands[1] = %s\n", operands[1]);
 	bool immediate = has_hashtag(remove_whitespace(operands[1])) || has_equals(operands[1]);
 	if (opcode <= 5) {
 		immediate = has_hashtag(remove_whitespace(operands[2]));
 	}
-	if (strcmp(mnemonic, "mov") == 0 && immediate && get_operand_value(operands[1]) > 0xff) {
+
+	/* if (strcmp(mnemonic, "mov") == 0 && immediate && get_operand_value(operands[1]) > 0xff) {
 		printf("calling SDT\n");
 		return single_data_transfer(mnemonic, operands, 0, constants, consts_size, num_lines, curr_line, num_operands);
-	}
+	} */
+
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
 	uint32_t operand = 0;
+	uint8_t rotate = 0;
 
 	uint32_t result = 0;
 		
@@ -305,13 +316,26 @@ uint32_t data_processing(char* mnemonic, char** operands, uint32_t* constants, u
 	}
 	else if (opcode == 6) {
 		register_d = get_operand_value(operands[0]);
-		operand = get_operand_value(operands[1]);		
+		operand = get_operand_value(operands[1]);	
 	}
 	else if (opcode >= 7) {
 		result |= 1 << 20;
 		register_n = get_operand_value(operands[0]);
 		operand = get_operand_value(operands[1]);
 	}
+
+	//printf("before while loop: operand = %d\n",operand);
+	
+	// calculate the imm value and rotate value
+	while (operand > 256) {
+		operand = rotate_left(operand, 2);
+		rotate++;
+	}
+
+	//printf("after while loop: operand = %d and rotate = %d\n", operand, rotate);
+	
+	operand &= 0xff; // Imm value must be unsigned 8-bit
+	operand = (rotate << 8) | operand;
 	
 	if (immediate) {
 		result = result | 0x02000000; // operand2 is an immediate value
@@ -466,10 +490,10 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 
 	// operand[1] is a register
 
-	if (preindexing && num_operands == 2) {
-		operands[1] = remove_l_bracket(operands[1]);
-		operands[2] = remove_r_bracket(operands[2]);
-	}	
+	// if (preindexing && num_operands == 2) {
+	// 	operands[1] = remove_l_bracket(operands[1]);
+	// 	operands[2] = remove_r_bracket(operands[2]);
+	// }	
 	
 	bool up = true;
 	
