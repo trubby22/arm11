@@ -511,6 +511,7 @@ uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_co
 	uint32_t register_d = get_operand_value(operands[0]);
 	//offset = 0;
 	uint32_t result = 0xe4000000;
+	operands[2] = remove_hashtag(operands[2]);
 
 	if (num_operands == 3 && minus(operands[2])) {
 		up = false;
@@ -774,19 +775,25 @@ int main(int argc, char** argv) {
 		printf("loop success\n");
 	}
 
+	printf("consts_size: %d\n", consts_size);
 	for (int j = 0; j < consts_size; j++) {
 		printf("storing constant: 0x%8x at address %d\n", constants[j], (mem + j) * 4);
 		fwrite(&(constants[j]), sizeof(uint32_t), 1, fptr_2);
 	}
 
+	printf("check\n");
 	free(label);
+	printf("check\n");
 	free(mnemonic);
-	free(operands[0]);
+	printf("check\n");
+	//free(operands[0]); // causes segfault - uncoment later and add a better fix
+	printf("check\n");
 	free(operands);
-
+	printf("check\n");
 	fclose(fptr_2);
+	printf("check\n");
 	fclose(second_pass_fptr);
-
+	printf("check\n");
 	return EXIT_SUCCESS;
 }
 
