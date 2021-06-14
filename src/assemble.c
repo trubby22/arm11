@@ -298,6 +298,7 @@ uint32_t data_processing(char* mnemonic, char** operands, uint32_t* constants, u
 		immediate = has_hashtag(remove_whitespace(operands[2]));
 	}
 
+/*
 	if (strcmp(mnemonic, "mov") == 0 && immediate && get_operand_value(operands[1]) > 0xff) {
 		printf("=== calling SDT ===\n");
 		strcpy(mnemonic, "ldr");
@@ -305,6 +306,7 @@ uint32_t data_processing(char* mnemonic, char** operands, uint32_t* constants, u
 		printf("%s\n", operands[1]);
 		return single_data_transfer(mnemonic, operands, 0, constants, consts_size, num_lines, curr_line, num_operands);
 	}
+*/
 
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
@@ -328,15 +330,19 @@ uint32_t data_processing(char* mnemonic, char** operands, uint32_t* constants, u
 		operand = get_operand_value(operands[1]);
 	}
 
-	//printf("before while loop: operand = %d\n",operand);
+	printf("before while loop: operand = %d\n",operand);
 	
 	// calculate the imm value and rotate value
-	while (operand > 256) {
+	while (operand > 0xff) {
 		operand = rotate_left(operand, 2);
 		rotate++;
+		if (rotate > 15) {
+			printf("DP operand too big; error!\n");
+			break;
+		}
 	}
 
-	//printf("after while loop: operand = %d and rotate = %d\n", operand, rotate);
+	printf("after while loop: operand = %d and rotate = %d\n", operand, rotate);
 	
 	operand &= 0xff; // Imm value must be unsigned 8-bit
 	operand = (rotate << 8) | operand;
