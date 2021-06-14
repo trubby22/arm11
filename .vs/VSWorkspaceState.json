@@ -1,7 +1,9 @@
 {
   "ExpandedNodes": [
     "",
+    "\\extension",
     "\\src"
   ],
+  "SelectedNode": "\\extension\\emulate.c",
   "PreviewInSolutionExplorer": false
 }

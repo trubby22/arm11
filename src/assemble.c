@@ -688,13 +688,8 @@ int main(int argc, char** argv) {
 	FILE* fptr = fopen(argv[1], "r"); // "r" - read
 	assert(fptr != NULL && "Could not open file");
 
-	FILE* fptr_2 = fopen(argv[2], "w"); // "w" - write
-	assert(fptr != NULL && "Could not open file");
-
-	fclose(fptr_2);
-	fptr_2 = fopen(argv[2], "ab"); // "ab" - append binary
-	
-	//two_pass_assembly(fptr, fptr_2);		
+	FILE* fptr_2 = fopen(argv[2], "ab"); // "ab" - append binary
+	assert(fptr_2 != NULL && "Could not open file");
 
 	while (fgets(line, MAX_LINE_SIZE, fptr)) {
 		if (*line == '\n') {
@@ -739,15 +734,12 @@ int main(int argc, char** argv) {
 
 	consts_size = 0;
 
-	fclose(fptr);
-	
-	FILE* second_pass_fptr = fopen(argv[1], "r"); // "r" - read
-	assert(second_pass_fptr != NULL && "Could not open file");
+	fseek(fptr, 0, SEEK_SET);
 
 	mem = 0;
 	
 	uint32_t instruction;
-	while (fgets(line, MAX_LINE_SIZE, second_pass_fptr)) {
+	while (fgets(line, MAX_LINE_SIZE, fptr)) {
 		int target_address;
 		if (*line == '\n') {
 			break;
@@ -805,7 +797,7 @@ int main(int argc, char** argv) {
 	printf("check\n");
 	fclose(fptr_2);
 	printf("check\n");
-	fclose(second_pass_fptr);
+	fclose(fptr);
 	printf("check\n");
 	return EXIT_SUCCESS;
 }
