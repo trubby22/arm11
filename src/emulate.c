@@ -30,6 +30,7 @@
 #define REGISTER_COUNT 17
 
 uint8_t* Ram;
+uint16_t start;
 uint32_t Registers[REGISTER_COUNT] = { 0 };
 
 uint32_t read_ram(uint16_t address) {
@@ -277,9 +278,9 @@ void singleDataTransfer(uint32_t instruction) {
 	}
 
 	if (load) {
-		Registers[register_m] = read_ram(memory);
+		Registers[register_m] = read_ram(start + memory);
 	} else {
-		write_ram(memory, Registers[register_m]);
+		write_ram(start + memory, Registers[register_m]);
 	}
 
 	if (!pre_indexing) {
@@ -305,7 +306,7 @@ uint32_t fetch(void) {
 		return 0;
 	}
 
-	uint32_t fetched = read_ram(Registers[PC_REGISTER]);
+	uint32_t fetched = read_ram(start + Registers[PC_REGISTER]);
 	Registers[PC_REGISTER] += 4;
 	return fetched;
 }
@@ -318,7 +319,7 @@ uint32_t fetch_pre(void) {
 	}
 
 	Registers[PC_REGISTER] += 4;
-	uint32_t fetched = read_ram(Registers[PC_REGISTER]);
+	uint32_t fetched = read_ram(start + Registers[PC_REGISTER]);
 	return fetched;
 }
 
@@ -356,7 +357,7 @@ void print_state(uint16_t program_size) {
 }
 
 int main(int argc, char* argv[]) {
-	assert(argc == 2 && "Enter one argument"); //forces you to enter an argument
+	assert(argc >= 2 && "Enter at least one argument"); //forces you to enter an argument
 
 	FILE* fptr = fopen(argv[1], "rb"); // "rb" - read binary 
 	assert(fptr != NULL && "Could not open file");
@@ -364,11 +365,17 @@ int main(int argc, char* argv[]) {
 	Ram = (uint8_t*)calloc(RAM_SIZE, sizeof(uint8_t));
 	assert(Ram != NULL && "Could not claim memory");
 
-	uint16_t program_size = (uint16_t)fread(Ram, 1, RAM_SIZE, fptr);
+	start = 0;
+	
+	if (argc >= 3) {
+		start = atoi(argv[2]);
+	}
+
+	uint16_t program_size = (uint16_t)fread(Ram + start, 1, RAM_SIZE, fptr);
 
 	uint32_t execute = fetch();
 	uint32_t decoded = fetch();
-	uint32_t fetched = read_ram(Registers[PC_REGISTER]);
+	uint32_t fetched = read_ram(start + Registers[PC_REGISTER]);
 
 	while (execute != 0) {
 		bool branch_present = false;
@@ -399,7 +406,7 @@ int main(int argc, char* argv[]) {
 			}
 		}
 		if (branch_present) {
-			execute = read_ram(Registers[PC_REGISTER]);
+			execute = read_ram(start + Registers[PC_REGISTER]);
 			decoded = fetch_pre();
 			fetched = fetch_pre();
 		} else {
