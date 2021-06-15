@@ -30,6 +30,7 @@
 #define REGISTER_COUNT 17
 
 uint8_t* Ram;
+uint16_t start;
 uint32_t Registers[REGISTER_COUNT] = { 0 };
 
 uint32_t read_ram(uint16_t address) {
@@ -110,8 +111,7 @@ uint32_t shift(uint32_t offset, bool set_condition) {
 	if (set_condition && shift_value != 0) {
 		if (shift_type == 0) {
 			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> (31 - shift_value)) & 0x1);
-		}
-		else {
+		} else {
 			set_bit(Registers + CPSR_REGISTER, CPSR_Z, (register_value >> shift_value) & 0x1);
 		}
 	}
@@ -149,8 +149,7 @@ void dataProcessing(uint32_t instruction) {
 		uint8_t rotate = operand2 >> 8;
 		uint8_t imm = operand2 & 0xff;
 		operand2 = rotate_right(imm, rotate << 1); // Shifted 1 to the left to multiply by 2
-	}
-	else {
+	} else {
 		operand2 = shift(operand2, set_condition); //operand2 is a shifted register
 	}
 
@@ -210,8 +209,7 @@ void dataProcessing(uint32_t instruction) {
 		if (is_arithmetic) {
 			if (is_addition) {
 				set_bit(Registers + CPSR_REGISTER, CPSR_C, result > 0xffffffff);
-			}
-			else {
+			} else {
 				// result >= 0 --> no borrow; result < 0 --> borrow
 				set_bit(Registers + CPSR_REGISTER, CPSR_C, result <= 0x80000000);
 			}
@@ -220,8 +218,7 @@ void dataProcessing(uint32_t instruction) {
 		// Z = 1 if the result is all 0s 
 		if (result == 0) {
 			set_bit(Registers + CPSR_REGISTER, CPSR_Z, 1);
-		}
-		else {
+		} else {
 			set_bit(Registers + CPSR_REGISTER, CPSR_Z, 0);
 		}
 		// N = logical value of 31st bit of result
@@ -267,8 +264,7 @@ void singleDataTransfer(uint32_t instruction) {
 
 	if (up) {
 		offset = Registers[register_n] + offset;
-	}
-	else {
+	} else {
 		offset = Registers[register_n] - offset;
 	}
 
@@ -282,10 +278,9 @@ void singleDataTransfer(uint32_t instruction) {
 	}
 
 	if (load) {
-		Registers[register_m] = read_ram(memory);
-	}
-	else {
-		write_ram(memory, Registers[register_m]);
+		Registers[register_m] = read_ram(start + memory);
+	} else {
+		write_ram(start + memory, Registers[register_m]);
 	}
 
 	if (!pre_indexing) {
@@ -301,18 +296,17 @@ void branch(uint32_t instruction) {
 		offset = (~offset) + 1;
 		offset &= 0xffffff;
 		Registers[PC_REGISTER] -= offset;
-	}
-	else {
+	} else {
 		Registers[PC_REGISTER] += offset;
 	}
 }
 
 uint32_t fetch(void) {
-	if (Registers[PC_REGISTER] >= RAM_SIZE) {
+	if (Registers[PC_REGISTER] >= RAM_SIZE) { 
 		return 0;
 	}
 
-	uint32_t fetched = read_ram(Registers[PC_REGISTER]);
+	uint32_t fetched = read_ram(start + Registers[PC_REGISTER]);
 	Registers[PC_REGISTER] += 4;
 	return fetched;
 }
@@ -325,7 +319,7 @@ uint32_t fetch_pre(void) {
 	}
 
 	Registers[PC_REGISTER] += 4;
-	uint32_t fetched = read_ram(Registers[PC_REGISTER]);
+	uint32_t fetched = read_ram(start + Registers[PC_REGISTER]);
 	return fetched;
 }
 
@@ -352,42 +346,36 @@ void print_state(uint16_t program_size) {
 	printf("PC  : %10d (0x%08x)\n", Registers[PC_REGISTER], Registers[PC_REGISTER]);
 	printf("CPSR: %10d (0x%08x)\n", Registers[CPSR_REGISTER], Registers[CPSR_REGISTER]);
 	printf("Non-zero memory:\n");
-	for (i = 0; i <= RAM_SIZE - 4; i += 4) {
+	for (i = 0; i <= RAM_SIZE-4; i += 4) {
 		if (read_ram(i) != 0) {
 			printf("0x%08x: 0x%08x\n", i, swap(read_ram(i))); // if you want to view numbers in regular big endian format, delete swap here
 		}
-		if (i == RAM_SIZE - 4) {
+		if (i == RAM_SIZE-4) {
 			break;
 		}
 	}
 }
 
 int main(int argc, char* argv[]) {
-	assert((argc == 2 || argc == 3) && "Enter one argument"); //forces you to enter an argument
+	assert(argc >= 2 && "Enter at least one argument"); //forces you to enter an argument
 
 	FILE* fptr = fopen(argv[1], "rb"); // "rb" - read binary 
 	assert(fptr != NULL && "Could not open file");
 
-	if (argc == 3) { //Extension: Relocating loader modifies value of fptr to load at a different location
-		int offset = 0;
-		assert(sscanf(argv[2], "%d", &offset) == 1 && "input must be a decimal number");
-		int modifier = 1;
-		if (offset < 0) {
-			modifier = -1;
-		}
-		for (int i = 0; i != offset; i += modifier) {
-			fgets(line, MAX_LINE_SIZE, fptr);
-		}
-	}
-
 	Ram = (uint8_t*)calloc(RAM_SIZE, sizeof(uint8_t));
 	assert(Ram != NULL && "Could not claim memory");
 
-	uint16_t program_size = (uint16_t)fread(Ram, 1, RAM_SIZE, fptr);
+	start = 0;
+	
+	if (argc >= 3) {
+		start = atoi(argv[2]);
+	}
+
+	uint16_t program_size = (uint16_t)fread(Ram + start, 1, RAM_SIZE, fptr);
 
 	uint32_t execute = fetch();
 	uint32_t decoded = fetch();
-	uint32_t fetched = read_ram(Registers[PC_REGISTER]);
+	uint32_t fetched = read_ram(start + Registers[PC_REGISTER]);
 
 	while (execute != 0) {
 		bool branch_present = false;
@@ -399,8 +387,7 @@ int main(int argc, char* argv[]) {
 			case 0x0:
 				if (((execute >> 4) & 0xf) == 0x9) {
 					multiply(execute);
-				}
-				else {
+				} else {
 					dataProcessing(execute);
 				}
 				break;
@@ -419,11 +406,10 @@ int main(int argc, char* argv[]) {
 			}
 		}
 		if (branch_present) {
-			execute = read_ram(Registers[PC_REGISTER]);
+			execute = read_ram(start + Registers[PC_REGISTER]);
 			decoded = fetch_pre();
 			fetched = fetch_pre();
-		}
-		else {
+		} else {
 			execute = decoded;
 			decoded = fetched;
 			fetched = fetch_pre();
