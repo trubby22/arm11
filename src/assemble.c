@@ -8,6 +8,51 @@
 #define MAX_LINE_SIZE 511
 #define NUM_OPCODES 24
 
+struct entry {
+	char* str;
+	uint8_t n;
+};
+
+struct entry opcode[] = {
+	{"and", 10},
+	{"eor", 11},
+	{"sub", 12},
+	{"rsb", 13},
+	{"add", 14},
+	{"orr", 15}, // orr = 12
+	{"mov", 16}, // mov = 13
+	{"tst", 17}, // tst = 8
+	{"teq", 18}, // teq = 9
+	{"cmp", 19}, // cmp = 10
+	{"mul", 20},
+	{"mla", 21},
+	{"ldr", 30},
+	{"str", 31},
+	{"beq", 40},
+	{"bne", 41},
+	{"bge", 42},
+	{"blt", 43},
+	{"bgt", 44},
+	{"ble", 45},
+	{"bal", 46},
+	{"b", 47},
+	{"lsl", 50},
+	{"andeq", 51}
+};
+
+struct entry opcode_dp[] = {
+	{"and", 0x0},
+	{"eor", 0x1},
+	{"sub", 0x2},
+	{"rsb", 0x3},
+	{"add", 0x4},
+	{"orr", 0xc},
+	{"mov", 0xd},
+	{"tst", 0x8},
+	{"teq", 0x9},
+	{"cmp", 0xa}
+};
+
 // swap used to convert from big endian to little endian
 uint32_t swap(uint32_t num) {
 	uint32_t swapped = ((num >> 24) & 0xff) | // move byte 3 to byte 0
@@ -29,14 +74,11 @@ bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_
 		str[i] = *line;
 		line += sizeof(char);
 	}
-	//printf("str check: %s\n", str);
   
 	char str_org[MAX_LINE_SIZE];
 	memcpy(str_org, str, MAX_LINE_SIZE);
  
 	token = strtok(str, ":");
-	//printf("token check: %s\n", token);
-	//printf("strcmp: %d\n", strcmp(str, token));
 
 	// strings are different
 	if (strcmp(str_org, token) != 0) {
@@ -47,7 +89,6 @@ bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_
 
 	token = strtok(str, " ");
 
-	//printf("%s\n", token);
 	// we get a mnemonic
 	memcpy(mnemonic, token, MAX_LINE_SIZE);
 
@@ -56,7 +97,6 @@ bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_
 	token = strtok(NULL, ",");
 
 	while (token != NULL) {
-		//printf("1st loop check: %s\n", token);
 		//memcpy(operands[n], token, MAX_LINE_SIZE * sizeof(char));
 		strcpy(operands[n], token);
 		token = strtok(NULL, ",");
@@ -196,54 +236,6 @@ uint32_t get_operand_value(char* operand) {
 	return strtol(operand, NULL, 10);
 }
 
-//structs for opcode
-//TODO: move to top where it should be
-
-struct entry {
-	char* str;
-	uint8_t n;
-};
-
-struct entry opcode[] = {
-	{"and", 10},
-	{"eor", 11},
-	{"sub", 12},
-	{"rsb", 13},
-	{"add", 14},
-	{"orr", 15}, // orr = 12
-	{"mov", 16}, // mov = 13
-	{"tst", 17}, // tst = 8
-	{"teq", 18}, // teq = 9
-	{"cmp", 19}, // cmp = 10
-	{"mul", 20},
-	{"mla", 21},
-	{"ldr", 30},
-	{"str", 31},
-	{"beq", 40},
-	{"bne", 41},
-	{"bge", 42},
-	{"blt", 43},
-	{"bgt", 44},
-	{"ble", 45},
-	{"bal", 46},
-	{"b", 47},
-	{"lsl", 50},
-	{"andeq", 51}
-};
-
-struct entry opcode_dp[] = {
-	{"and", 0x0},
-	{"eor", 0x1},
-	{"sub", 0x2},
-	{"rsb", 0x3},
-	{"add", 0x4},
-	{"orr", 0xc},
-	{"mov", 0xd},
-	{"tst", 0x8},
-	{"teq", 0x9},
-	{"cmp", 0xa}
-};
-
 uint8_t string_to_opcode(char* key)
 {
 	for (uint8_t i = 0; i < NUM_OPCODES; i++) {
@@ -266,19 +258,6 @@ int string_to_opcode_dp(char* key)
 	return 0;
 }
 
-/*
-char* remove_special_chars(char* operand) {
-	char copy[MAX_LINE_SIZE];
-	char* ptr = &(copy[0]);
-	strcpy(ptr, operand);
-	ptr = remove_whitespace(ptr);
-	ptr = remove_equals(ptr);
-	ptr = remove_sq_brackets(ptr);
-	ptr = remove_hashtag(ptr);
-	return ptr;
-}
-*/
-
 uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_count, uint32_t* constants, uint32_t* consts_size, uint32_t num_lines, uint32_t curr_line, uint32_t num_operands);
 
 // bitwise circular left rotation for calculating rotate and operand fields of operand2 of 
@@ -297,16 +276,6 @@ uint32_t data_processing(char* mnemonic, char** operands, uint32_t* constants, u
 	if (opcode <= 5) {
 		immediate = has_hashtag(remove_whitespace(operands[2]));
 	}
-
-/*
-	if (strcmp(mnemonic, "mov") == 0 && immediate && get_operand_value(operands[1]) > 0xff) {
-		printf("=== calling SDT ===\n");
-		strcpy(mnemonic, "ldr");
-		operands[1][0] = '=';
-		printf("%s\n", operands[1]);
-		return single_data_transfer(mnemonic, operands, 0, constants, consts_size, num_lines, curr_line, num_operands);
-	}
-*/
 
 	uint8_t register_d = 0;
 	uint8_t register_n = 0;
@@ -448,19 +417,11 @@ void add_r_sq_bracket(char* str) {
 
 uint32_t single_data_transfer(char* mnemonic, char** operands, uint32_t* load_count, uint32_t* constants, uint32_t* consts_size, uint32_t num_lines, uint32_t curr_line, uint32_t num_operands) {
 	//TODO: remove print after debugging
-
 	bool preindexing = true;
 
 	if (num_operands == 3 && ends_with_sq_bracket(operands[1])) {
 		preindexing = false;
 	}
-/*
-	char temp[MAX_LINE_SIZE] = { '\0' };
-	char* ptr = &(temp[0]);
-
-	char temp_2[MAX_LINE_SIZE] = { '\0' };
-	char* ptr_2 = &(temp_2[0]);
-*/
 		
 	printf("Operands[0]: %s\nOperands[1]: %s\n", operands[0], operands[1]);
 	if (num_operands == 3) {
