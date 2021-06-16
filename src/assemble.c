@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
 	FILE* fptr = fopen(argv[1], "r"); // "r" - read
 	assert(fptr != NULL && "Could not open file");
 
-	FILE* fptr_2 = fopen(argv[2], "ab"); // "ab" - append binary
+	FILE* fptr_2 = fopen(argv[2], "wb"); // "wb" - write binary
 	assert(fptr_2 != NULL && "Could not open file");
 
 	// first pass
@@ -112,7 +112,6 @@ int main(int argc, char** argv) {
 
 	free(label);
 	free(mnemonic);
-	//free(operands[0]); // causes segfault - uncoment later and add a better fix
 	free(operands);
 	fclose(fptr_2);
 	fclose(fptr);
