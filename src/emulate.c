@@ -22,6 +22,7 @@
 #include "global_vars.c"
 #include "shift.c"
 #include "helper_tools.c"
+#include "swap.c"
 #include "data_processing.c"
 #include "multiply.c"
 #include "single_data_transfer.c"
