@@ -6,7 +6,9 @@ uint32_t single_data_transfer(void) {
 	}
 		
 	bool immediate = true;
+	bool is_post;
 	operands[1] = remove_whitespace(operands[1]);
+	is_post = has_sq_brackets(operands[1]);
 	uint32_t offset = 0;
 
 	if (has_sq_brackets(operands[1])) {
