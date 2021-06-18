@@ -1,3 +1,20 @@
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
+#include "global_vars_2.h"
+#include "text_handling.h"
+#include "data_processing_2.h"
+#include "single_data_transfer_2.h"
+
+extern uint32_t num_operands;
+extern char** operands;
+extern char* mnemonic;
+extern uint32_t constants[];
+extern uint32_t consts_size;
+extern uint32_t num_lines;
+extern uint32_t curr_line;
+
 uint32_t single_data_transfer(void) {
 	bool preindexing = true;
 

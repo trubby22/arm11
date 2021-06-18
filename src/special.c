@@ -1,3 +1,12 @@
+#include <string.h>
+#include <stdint.h>
+#include "data_processing_2.h"
+#include "global_vars_2.h"
+#include "special.h"
+
+extern char** operands;
+extern char* mnemonic;
+
 uint32_t andeq(void) {
 	return 0;	
 }

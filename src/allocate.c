@@ -1,3 +1,8 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include "global_vars_2.h"
+#include "allocate.h"
+
 char* alloc_label (void) {
 	char* label = (char*) malloc(MAX_LINE_SIZE * sizeof(char));
 	if (!label) {

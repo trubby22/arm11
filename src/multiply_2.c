@@ -1,3 +1,11 @@
+#include <stdint.h>
+#include <string.h>
+#include "text_handling.h"
+#include "multiply_2.h"
+
+extern char** operands;
+extern char* mnemonic;
+
 uint32_t multiply(void) {
 
 	uint32_t rd = get_operand_value(operands[0]);

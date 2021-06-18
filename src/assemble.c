@@ -5,18 +5,37 @@
 #include <string.h>
 #include <stdbool.h>
 #include "assemble.h"
-#include "global_vars_2.c"
-#include "swap.c"
-#include "text_handling.c"
-#include "opcodes.c"
-#include "rotate_left.c"
-#include "data_processing_2.c"
-#include "multiply_2.c"
-#include "sdt_helpers.c"
-#include "single_data_transfer_2.c"
-#include "branch_2.c"
-#include "special.c"
-#include "allocate.c"
+#include "global_vars_2.h"
+#include "swap.h"
+#include "text_handling.h"
+#include "opcodes.h"
+#include "rotate_left.h"
+#include "data_processing_2.h"
+#include "multiply_2.h"
+#include "sdt_helpers.h"
+#include "single_data_transfer_2.h"
+#include "branch_2.h"
+#include "special.h"
+#include "allocate.h"
+
+/*
+#define MAX_CONSTANTS_COUNT 100
+extern int MAX_LINE_SIZE;
+extern int NUM_OPCODES;
+extern int MAX_LABELS_COUNT;
+extern int MAX_CONSTANTS_COUNT;
+*/
+
+extern char* line;
+extern char* label;
+extern char* mnemonic;
+extern char** operands;
+extern uint32_t num_operands;
+extern uint32_t constants[];
+extern uint32_t consts_size;
+extern uint32_t num_lines;
+extern uint32_t curr_line;
+extern uint32_t last_line;
 
 int main(int argc, char** argv) {
 	label = alloc_label();

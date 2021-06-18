@@ -1,3 +1,11 @@
+#include <stdint.h>
+#include <stdbool.h>
+#include "global_vars.h"
+#include "helper_tools.h"
+#include "multiply.h"
+
+extern uint32_t Registers[];
+
 void multiply(uint32_t instruction) {
 	bool accumulate = (instruction >> 21) & 0x1;
 	bool set_condition = (instruction >> 20) & 0x1;

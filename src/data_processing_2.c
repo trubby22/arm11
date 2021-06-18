@@ -1,3 +1,15 @@
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include "rotate_left.h"
+#include "opcodes.h"
+#include "global_vars_2.h"
+#include "text_handling.h"
+#include "data_processing_2.h"
+
+extern char* mnemonic;
+extern char** operands;
+
 uint32_t data_processing(void) {
 	uint8_t opcode = string_to_opcode(mnemonic) - 10;
 	bool immediate = has_hashtag(remove_whitespace(operands[1])) || has_equals(operands[1]);

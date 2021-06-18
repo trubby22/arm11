@@ -1,3 +1,11 @@
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include "global_vars_2.h"
+#include "text_handling.h"
+
 // splits line into label, opcode, operands and operand count
 // returns true when it is a label, false otherwise
 bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_t* num_operands) {

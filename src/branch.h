@@ -1,8 +1,6 @@
-#ifndef __BRANCH_H__
-#define __BRANCH_H__
-
-#include <stdint.h>
+#ifndef BRANCH_H
+#define BRANCH_H
 
 void branch(uint32_t instruction);
 
-#endif //__BRANCH_H__
+#endif

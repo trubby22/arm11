@@ -19,14 +19,18 @@
 #include <string.h>
 #include <stdbool.h>
 #include "emulate.h"
-#include "global_vars.c"
-#include "shift.c"
-#include "helper_tools.c"
-#include "swap.c"
-#include "data_processing.c"
-#include "multiply.c"
-#include "single_data_transfer.c"
-#include "branch.c"
+#include "global_vars.h"
+#include "shift.h"
+#include "helper_tools.h"
+#include "swap.h"
+#include "data_processing.h"
+#include "multiply.h"
+#include "single_data_transfer.h"
+#include "branch.h"
+
+extern uint8_t* Ram;
+extern uint16_t start;
+extern uint32_t Registers[];
 
 int main(int argc, char* argv[]) {
 	assert(argc >= 2 && "Enter at least one argument"); //forces you to enter an argument

@@ -1,7 +1,8 @@
-#ifndef ASSEMBLE_H_
-#define ASSEMBLE_H_
+#include <stdbool.h>
 
-/*
+#ifndef TEXT_HANDLING_H
+#define TEXT_HANDLING_H
+
 bool tokenizer(char* line, char* label, char* mnemonic, char** operands, uint32_t* num_operands);
 bool is_register(char* operand);
 bool has_equals(char* operand);
@@ -20,25 +21,6 @@ char* remove_r_bracket(char* str);
 char* remove_minus(char* str);
 char* remove_special_chars(char* operand);
 uint32_t get_operand_value(char* operand);
-uint8_t string_to_opcode(char* key);
-int string_to_opcode_dp(char* key);
-uint32_t rotate_left(uint32_t value, uint8_t shift);
-uint32_t data_processing(void);
-uint32_t multiply(void);
-bool has_expression(char* operand);
-bool is_post(char* operand);
-uint32_t single_data_transfer(void);
-uint32_t branch(const int target_address);
-uint32_t andeq(void);
-uint32_t special_lsl(void);
-uint32_t special(void);
 void remove_newline(char* str);
-char* alloc_label (void);
-char* alloc_mnemonic (void);
-char** alloc_operands (void);
-char* alloc_line (void);
-*/
-
-int main(int argc, char** argv);
 
 #endif

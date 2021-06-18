@@ -1,3 +1,14 @@
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include "shift.h"
+#include "helper_tools.h"
+#include "global_vars.h"
+#include "data_processing.h"
+
+extern uint16_t start;
+extern uint32_t Registers[];
+
 void dataProcessing(uint32_t instruction) {
 	uint32_t operand2 = instruction & 0xfff;
 	uint8_t register_d = (instruction >> 12) & 0xf;

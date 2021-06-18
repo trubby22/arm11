@@ -1,3 +1,14 @@
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include "shift.h"
+#include "helper_tools.h"
+#include "global_vars.h"
+#include "single_data_transfer.h"
+
+extern uint16_t start;
+extern uint32_t Registers[];
+
 void single_data_transfer(uint32_t instruction) {
 	bool immediate_offset = (instruction >> 25) & 0x1;
 	bool pre_indexing = (instruction >> 24) & 0x1;

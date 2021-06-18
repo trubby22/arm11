@@ -1,0 +1,9 @@
+#define MAX_LINE_SIZE 511
+#define NUM_OPCODES 24
+#define MAX_LABELS_COUNT 100
+#define MAX_CONSTANTS_COUNT 100
+
+#ifndef GLOBAL_VARS_2_H
+#define GLOBAL_VARS_2_H
+
+#endif

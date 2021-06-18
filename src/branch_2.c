@@ -1,3 +1,11 @@
+#include <stdint.h>
+#include <string.h>
+#include "opcodes.h"
+#include "branch_2.h"
+
+extern char* mnemonic;
+extern uint32_t curr_line;
+
 // the target address passed in to this function is either a specific 32-bit 
 // address or a label.
 uint32_t branch(const int target_address) {

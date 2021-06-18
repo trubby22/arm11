@@ -1,3 +1,15 @@
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include "swap.h"
+#include "global_vars.h"
+#include "helper_tools.h"
+
+extern uint8_t* Ram;
+extern uint16_t start;
+extern uint32_t Registers[];
+
 uint32_t read_ram(uint16_t address) {
 	return *(uint32_t*)(Ram + address);
 }

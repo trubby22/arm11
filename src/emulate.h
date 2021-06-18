@@ -1,6 +1,7 @@
 #ifndef EMULATE_H_
 #define EMULATE_H_
 
+/*
 uint32_t read_ram(uint16_t address);
 void write_ram(uint16_t address, uint32_t value);
 void set_bit(uint32_t* number, uint8_t bit, bool set);
@@ -16,6 +17,7 @@ uint32_t fetch(void);
 uint32_t fetch_pre(void);
 uint32_t swap(uint32_t num);
 void print_state(uint16_t program_size);
+*/
 int main(int argc, char* argv[]);
 
 #endif

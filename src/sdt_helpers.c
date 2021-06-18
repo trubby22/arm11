@@ -1,3 +1,8 @@
+#include <stdbool.h>
+#include <stdint.h>
+#include "text_handling.h"
+#include "sdt_helpers.h"
+
 bool has_expression(char* operand) {
 	operand = remove_whitespace(operand);
 	return has_equals(operand);

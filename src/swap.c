@@ -1,3 +1,6 @@
+#include <stdint.h>
+#include "swap.h"
+
 // swap used to convert from big endian to little endian
 
 uint32_t swap(uint32_t num) {
